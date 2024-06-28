@@ -42,7 +42,7 @@ export default class Handler {
 		Server.registryPostScript("/stream", async function(request, response) {
 			console.log("Esp32 Connected");
 
-			var socket = request.socket;
+			let socket = request.socket;
 
 			socket.on("readable", function() {
 				if (socket.unlock) {
@@ -57,7 +57,7 @@ export default class Handler {
 			});
 
 			while (true) {
-				var length = await context.read(socket, 10);
+				let length = await context.read(socket, 10);
 
 				if (length) {
 					length = parseInt(length.toString());
@@ -65,9 +65,9 @@ export default class Handler {
 					break;
 				}
 
-				var frame = await context.read(socket, length);
+				let frame = await context.read(socket, length);
 
-				if (frame) {
+				if (frame.length > 0) {
 					for (let i = 0; i < context.receivers.length; i++) {
 						context.sendframe(context.receivers[i], frame);
 					}
@@ -87,12 +87,12 @@ export default class Handler {
 	}
 
 	static async read(socket, length) {
-		var chunks = [];
-		var read = 0;
+		let chunks = [];
+		let read = 0;
 
 		while (read < length) {
-			if (socket._readableState.length < length) {
-				if (socket._readableState > 0) {
+			if (socket._readableState.length < length - read) {
+				if (socket._readableState.length > 0) {
 					let buffer = socket.read();
 
 					chunks.push(buffer);
@@ -105,8 +105,8 @@ export default class Handler {
 				});
 			}
 
-			if (socket._readableState.length >= length) {
-				let buffer = socket.read(length);
+			if (socket._readableState.length >= length - read) {
+				let buffer = socket.read(length - read);
 
 				chunks.push(buffer);
 
