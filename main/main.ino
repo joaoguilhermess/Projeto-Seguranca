@@ -32,26 +32,26 @@ WiFiClient socket;
 void connectWifi() {
 	if (WiFi.status() == WL_CONNECTED) {return;}
 
-	Serial.print("Trying to Connect on SSID: ");
-	Serial.print(SSID);
-	Serial.print(" With Password: ");
-	Serial.println(PASSWORD);
+	// Serial.print("Trying to Connect on SSID: ");
+	// Serial.print(SSID);
+	// Serial.print(" With Password: ");
+	// Serial.println(PASSWORD);
 
 	WiFi.begin(SSID, PASSWORD);
 
 	while (WiFi.status() != WL_CONNECTED) {
-		Serial.print(".");
+		// Serial.print(".");
 
 		delay(1000);
 	}
 
-	Serial.println();
-	Serial.println("Wifi Connected");
+	// Serial.println();
+	// Serial.println("Wifi Connected");
 }
 
 void restart() {
-	Serial.println("Restarting...");
-	Serial.println("");
+	// Serial.println("Restarting...");
+	// Serial.println("");
 
 	delay(1000);
 
@@ -80,18 +80,18 @@ void initCamera() {
 	config.pin_pwdn = PWDN_GPIO_NUM;
 	config.pin_reset = RESET_GPIO_NUM;
 	config.xclk_freq_hz = 20000000;
-	config.frame_size = FRAMESIZE_UXGA;
+	config.frame_size = FRAMESIZE_HD;
 	config.pixel_format = PIXFORMAT_JPEG;
 	config.grab_mode = CAMERA_GRAB_LATEST;
 	config.fb_location = CAMERA_FB_IN_PSRAM;
-	config.jpeg_quality = 10;
+	config.jpeg_quality = 20;
 	config.fb_count = 1;
 
 	esp_err_t e = esp_camera_init(&config);
 
 	if (e != ESP_OK) {
-		Serial.print("Camera Error: 0x");
-		Serial.println(e);
+		// Serial.print("Camera Error: 0x");
+		// Serial.println(e);
 
 		restart();
 	}
@@ -103,7 +103,7 @@ camera_fb_t* getFrame() {
 	if (buffer) {
 		return buffer;
 	} else {
-		Serial.println("getFrame Falied");
+		// Serial.println("getFrame Falied");
 
 		restart();
 	}
@@ -116,10 +116,10 @@ void clearFrame(camera_fb_t* buffer) {
 void connectSocket() {
 	if (socket.connected()) {return;}
 
-	Serial.print("Trying to Connect on Server: ");
-	Serial.print(HOST);
-	Serial.print(":");
-	Serial.println(PORT);
+	// Serial.print("Trying to Connect on Server: ");
+	// Serial.print(HOST);
+	// Serial.print(":");
+	// Serial.println(PORT);
 
 	while (!socket.connected()) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -128,13 +128,13 @@ void connectSocket() {
 
 		socket.connect(HOST, PORT);
 
-		Serial.print(".");
+		// Serial.print(".");
 
 		delay(1000);
 	}
 
-	Serial.println();
-	Serial.println("Socket Connected");
+	// Serial.println();
+	// Serial.println("Socket Connected");
 
 	socket.print("POST /stream HTTP/1.1");
 	socket.print("\r\n");
@@ -148,7 +148,7 @@ void connectSocket() {
 }
 
 void setup() {
-	Serial.begin(115200);
+	// Serial.begin(115200);
 
 	initCamera();
 }
@@ -168,8 +168,8 @@ void loop() {
 		length = "0" + length;
 	}
 
-	Serial.print("length: ");
-	Serial.println(length);
+	// Serial.print("length: ");
+	// Serial.println(length);
 
 	socket.print(length);
 

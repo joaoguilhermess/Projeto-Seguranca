@@ -37,6 +37,8 @@ class Main {
 		};
 
 		img.src = this.streamUrl;
+
+		this.img = img;
 	}
 }
 

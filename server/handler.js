@@ -3,10 +3,6 @@ import Server from "./server.js";
 export default class Handler {
 	static Init() {
 		this.boundary = "626f756e64617279";
-		this.frame; 
-		this.unlock;
-		this.received = 0;
-
 		this.receivers = [];
 
 		this.registryStream();
