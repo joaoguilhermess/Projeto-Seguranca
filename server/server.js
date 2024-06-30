@@ -1,5 +1,6 @@
 import express from "express";
 import Util from "./util.js";
+import http from "http";
 
 export default class Server {
 	static Init() {
@@ -7,7 +8,10 @@ export default class Server {
 	
 		app.disable("x-powered-by");
 
+		var server = http.createServer(app);
+
 		this.app = app;
+		this.server = server;
 	}
 
 	static sendFile(path, response) {
@@ -57,6 +61,6 @@ export default class Server {
 			response.sendStatus(404);
 		});
 
-		this.app.listen(port, callback);
+		this.server.listen(port, callback);
 	}
 }

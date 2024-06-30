@@ -29,6 +29,8 @@
 
 WiFiClient socket;
 
+sensor_t* sensor;
+
 void connectWifi() {
 	if (WiFi.status() == WL_CONNECTED) {return;}
 
@@ -84,10 +86,12 @@ void initCamera() {
 	config.pixel_format = PIXFORMAT_JPEG;
 	config.grab_mode = CAMERA_GRAB_LATEST;
 	config.fb_location = CAMERA_FB_IN_PSRAM;
-	config.jpeg_quality = 20;
-	config.fb_count = 1;
+	config.jpeg_quality = 10;
+	config.fb_count = 2;
 
 	esp_err_t e = esp_camera_init(&config);
+
+	sensor = esp_camera_sensor_get();
 
 	if (e != ESP_OK) {
 		// Serial.print("Camera Error: 0x");
@@ -107,6 +111,88 @@ camera_fb_t* getFrame() {
 
 		restart();
 	}
+}
+
+void getConfig() {
+	Serial.print("framesize: ");
+	Serial.println(sensor->status.framesize);
+	Serial.print("quality: ");
+	Serial.println(sensor->status.quality);
+	Serial.print("brightness: ");
+	Serial.println(sensor->status.brightness);
+	Serial.print("contrast: ");
+	Serial.println(sensor->status.contrast);
+	Serial.print("saturation: ");
+	Serial.println(sensor->status.saturation);
+	Serial.print("special_effect: ");
+	Serial.println(sensor->status.special_effect);
+	Serial.print("whitebal: ");
+	Serial.println(sensor->status.awb);
+	Serial.print("awb_gain: ");
+	Serial.println(sensor->status.awb_gain);
+	Serial.print("wb_mode: ");
+	Serial.println(sensor->status.wb_mode);
+	Serial.print("exposure_ctrl: ");
+	Serial.println(sensor->status.aec);
+	Serial.print("aec2: ");
+	Serial.println(sensor->status.aec2);
+	Serial.print("ae_level: ");
+	Serial.println(sensor->status.ae_level);
+	Serial.print("aec_value: ");
+	Serial.println(sensor->status.aec_value);
+	Serial.print("gain_ctrl: ");
+	Serial.println(sensor->status.agc);
+	Serial.print("agc_gain: ");
+	Serial.println(sensor->status.agc_gain);
+	Serial.print("gainceiling: ");
+	Serial.println(sensor->status.gainceiling);
+	Serial.print("bpc: ");
+	Serial.println(sensor->status.bpc);
+	Serial.print("wpc: ");
+	Serial.println(sensor->status.wpc);
+	Serial.print("raw_gma: ");
+	Serial.println(sensor->status.raw_gma);
+	Serial.print("lenc: ");
+	Serial.println(sensor->status.lenc);
+	Serial.print("hmirror: ");
+	Serial.println(sensor->status.hmirror);
+	Serial.print("vflip: ");
+	Serial.println(sensor->status.vflip);
+	Serial.print("dcw: ");
+	Serial.println(sensor->status.dcw);
+	Serial.print("colorbar: ");
+	Serial.println(sensor->status.colorbar);
+}
+
+void updateConfig(String config, int value) {
+	// Serial.print(config);
+	// Serial.print(": ");
+	// Serial.println(value);
+
+	if (config == "framesize") {sensor->set_framesize(sensor, (framesize_t) value); return;}
+	if (config == "quality") {sensor->set_quality(sensor, value); return;}
+	if (config == "brightness") {sensor->set_brightness(sensor, value); return;}
+	if (config == "contrast") {sensor->set_contrast(sensor, value); return;}
+	if (config == "saturation") {sensor->set_saturation(sensor, value); return;}
+	if (config == "special_effect") {sensor->set_special_effect(sensor, value); return;}
+	if (config == "whitebal") {sensor->set_whitebal(sensor, value); return;}
+	if (config == "awb_gain") {sensor->set_awb_gain(sensor, value); return;}
+	if (config == "wb_mode") {sensor->set_wb_mode(sensor, value); return;}
+	if (config == "exposure_ctrl") {sensor->set_exposure_ctrl(sensor, value); return;}
+	if (config == "aec2") {sensor->set_aec2(sensor, value); return;}
+	if (config == "ae_level") {sensor->set_ae_level(sensor, value); return;}
+	if (config == "aec_value") {sensor->set_aec_value(sensor, value); return;}
+	if (config == "gain_ctrl") {sensor->set_gain_ctrl(sensor, value); return;}
+	if (config == "agc_gain") {sensor->set_agc_gain(sensor, value); return;}
+	if (config == "gainceiling") {sensor->set_gainceiling(sensor, (gainceiling_t) value); return;}
+	if (config == "bpc") {sensor->set_bpc(sensor, value); return;}
+	if (config == "wpc") {sensor->set_wpc(sensor, value); return;}
+	if (config == "raw_gma") {sensor->set_raw_gma(sensor, value); return;}
+	if (config == "lenc") {sensor->set_lenc(sensor, value); return;}
+	if (config == "hmirror") {sensor->set_hmirror(sensor, value); return;}
+	if (config == "vflip") {sensor->set_vflip(sensor, value); return;}
+	if (config == "dcw") {sensor->set_dcw(sensor, value); return;}
+	if (config == "colorbar") {sensor->set_colorbar(sensor, value); return;}
 }
 
 void clearFrame(camera_fb_t* buffer) {
@@ -148,15 +234,24 @@ void connectSocket() {
 }
 
 void setup() {
-	// Serial.begin(115200);
+	Serial.begin(115200);
 
 	initCamera();
+
+	getConfig();
 }
 
 void loop() {
 	connectWifi();
 
 	connectSocket();
+
+	while (socket.available()) {
+		// Serial.print("Available: ");
+		// Serial.println(socket.available());
+
+		updateConfig(socket.readStringUntil('\n'), socket.readStringUntil('\n').toInt());
+	}
 
 	camera_fb_t* frame = getFrame();
 

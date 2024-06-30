@@ -14,26 +14,150 @@
 	scroll-behavior: smooth !important;
 	-webkit-font-smoothing: antialiased;
 	-webkit-font-highlight-color: transparent;
+	overflow: hidden;
+}
+
+::-webkit-scrollbar {
+	min-width: 4px;
+	max-width: 4px;
+	background: rgba(40, 40, 40, 1.0);
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(125, 125, 125, 1.0);
+	border-radius: 100vh;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: #00000030;
 }
 
 html {
 	display: flex;
 	height: 100%;
 	width: 100%;
-	background-color: rgba(40, 40, 40, 1.0);
+	background-color: rgba(0, 0, 0, 1.0);
 }
 
 body {
-	display: flex;
+	display: none;
 	height: 100%;
 	width: 100%;
 	justify-content: center;
 	align-items: center;
 }
 
-img {
+main {
+	display: flex;
+	height: 100%;
+	flex-grow: 1;
+	flex-direction: column;
+}
+
+main img {
 	display: none;
 	height: 100%;
-	width: 100%;
 	object-fit: contain;
+}
+
+main bar {
+	position: fixed;
+	display: flex;
+	height: fit-content;
+	max-width: 100%;
+	gap: 12px;
+	padding: 12px;
+}
+
+main bar item {
+	display: flex;
+	height: fit-content;
+	width: fit-content;
+/*	padding: 24px;*/
+	gap: 12px;
+}
+
+main bar item title {
+	display: flex;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(150, 150, 150, 1.0);
+}
+
+main bar item value {
+	display: flex;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
+}
+
+right {
+	display: flex;
+	max-height: 100%;
+	min-width: 400px;
+	max-width: 400px;
+	padding: 12px;
+	gap: 12px;
+	flex-direction: column;
+	margin-top: auto;
+	margin-bottom: auto;
+	overflow-y: auto;
+}
+
+right item {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	overflow: visible;
+}
+
+right item title {
+	display: flex;
+	width: 100%;
+	max-width: 50%;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
+	overflow: visible;
+}
+
+right item input {
+	display: flex;
+	height: 12px;
+	appearance: none;
+	flex-grow: 1;
+	background-color: rgba(40, 40, 40, 1.0);
+	border-radius: 100vh;
+	cursor: pointer;
+}
+
+right item input::-webkit-slider-thumb {
+	appearance: none;
+	height: 12px;
+	width: 12px;
+	background-color: rgba(125, 125, 125, 1.0);
+	border-radius: 100vh;
+}
+
+right item input.switch {
+	max-width: 24px;
+}
+
+right item select {
+	display: flex;
+	flex-grow: 1;
+	background-color: rgba(40, 40, 40, 1.0);
+	border-radius: 100vh;
+	color: rgba(200, 200, 200, 1.0);
+	cursor: pointer;
+}
+
+right item value {
+	display: flex;
+	min-width: fit-content;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
 }
