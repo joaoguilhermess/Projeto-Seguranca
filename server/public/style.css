@@ -52,10 +52,18 @@ main {
 	flex-direction: column;
 }
 
-main img {
+main stream {
+	display: flex;
+	height: 100%;
+	justify-content: center;
+}
+
+main stream img {
 	display: none;
 	height: 100%;
+	width: 100%;
 	object-fit: contain;
+	aspect-ratio: 1/1;
 }
 
 main bar {

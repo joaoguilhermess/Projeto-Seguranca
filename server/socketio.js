@@ -7,8 +7,8 @@ export default class SocketIO {
 		var io = new IO(Server.server);
 
 		io.on("connection", function(socket) {
-			socket.on("config", function(alias, value) {
-				Handler.update(alias, value);
+			socket.on("command", function(alias, value) {
+				Handler.sendCommand(alias, value);
 			});
 		});
 

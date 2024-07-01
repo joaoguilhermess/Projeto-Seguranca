@@ -17,20 +17,22 @@ class Main {
 
 		this.InitStream();
 
-		this.addConfigs();
+		this.addMenu();
 	}
 
 	static addOnload() {
 		window.addEventListener("load", function() {
 			document.body.style.display = "flex";
 		});
+
+		document.body.style.display = "flex";
 	}
 
 	static addFullscreen() {
 		window.addEventListener("click", function() {
-			console.log("full");
-
-			document.body.requestFullscreen();
+			if (!document.fullscreen) {
+				document.body.requestFullscreen();
+			}
 		});
 	}
 
@@ -44,8 +46,6 @@ class Main {
 		var context = this;
 
 		var fun = async function() {
-			console.log("error");
-
 			context.stream.onerror = null;
 
 			context.stream.src = "";
@@ -115,7 +115,7 @@ class Main {
 		return item;
 	}
 
-	static addConfigs() {
+	static addMenu() {
 		var context = this;
 		
 		var list = [
@@ -142,7 +142,12 @@ class Main {
 			{alias: "hmirror", name: "Horizontal Flip", type: "switch", default: 0},
 			{alias: "vflip", name: "Vertical Flip", type: "switch", default: 0},
 			{alias: "dcw", name: "DCW", type: "switch", default: 1},
-			{alias: "colorbar", name: "Color Bar", type: "switch", default: 0}
+			{alias: "colorbar", name: "Color Bar", type: "switch", default: 0},
+			{name: "Rotation", type: "select", default: 3, options: ["-270°", "-180°", "-90°", "0°", "90°", "180°", "270°"], fun: function(value) {
+				context.stream.style.transform = "RotateZ(" + [-270, -180, -90, 0, 90, 180, 270][value] + "deg)";
+			}},
+			{alias: "led", name: "Led", type: "switch", default: 0},
+			{alias: "flash", name: "Flash", type: "switch", default: 0}
 		];
 
 		for (let i = 0; i < list.length; i++) {
@@ -171,7 +176,7 @@ class Main {
 				input.addEventListener("input", function(event) {
 					value.textContent = ["OFF", "ON"][input.value];
 
-					context.updateConfig(list[i], input.value);
+					context.sendCommand(list[i], input.value);
 				});
 
 				item.append(value);
@@ -201,7 +206,7 @@ class Main {
 				input.addEventListener("input", function(event) {
 					value.textContent = input.value;
 
-					context.updateConfig(list[i], input.value);
+					context.sendCommand(list[i], input.value);
 				});
 
 				item.append(value);
@@ -229,7 +234,7 @@ class Main {
 				input.addEventListener("input", function(event) {
 					value.textContent = input.value;
 
-					context.updateConfig(list[i], input.value);
+					context.sendCommand(list[i], input.value);
 				});
 
 				item.append(value);
@@ -240,10 +245,12 @@ class Main {
 		}
 	}
 
-	static updateConfig(item, value) {
-		console.log(item.name, item.alias, value);
-
-		this.socket.emit("config", item.alias, value);
+	static sendCommand(item, value) {
+		if (item.alias) {
+			this.socket.emit("command", item.alias, value);
+		} else {
+			item.fun(value);
+		}
 	}
 }
 

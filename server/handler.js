@@ -79,6 +79,10 @@ export default class Handler {
 
 				if (motion) {
 					SocketIO.sendEvent("motion", motion);
+
+					if (motion > 40) {
+						context.startBlinking(socket);
+					}
 				}
 
 				if (frame.length > 0) {
@@ -177,10 +181,46 @@ export default class Handler {
 		return Buffer.concat(chunks);
 	}
 
-	static async update(alias, value) {
+	static async sendCommand(alias, value) {
 		for (let i = 0; i < this.uploaders.length; i++) {
 			this.uploaders[i].write(alias + "\n");
 			this.uploaders[i].write(value + "\n");
+		}
+	}
+
+	static startBlinking(socket) {
+		var	context = this;
+
+		var command = "flash";
+
+		if (!socket.blinkInterval) {
+			context.sendCommand(command, 1);
+
+			socket.led = true;
+
+			socket.blinkInterval = setInterval(function() {
+				if (socket.led) {
+					context.sendCommand(command, 0);
+
+					socket.led = false;
+				} else {
+					context.sendCommand(command, 1);
+
+					socket.led = true;
+				}
+			}, 1000/2);
+		}
+
+		if (!socket.ledTimeout) {
+			socket.ledTimeout = setTimeout(function() {
+				clearInterval(socket.blinkInterval);
+
+				delete socket.blinkInterval;
+				delete socket.led;
+				delete socket.ledTimeout;
+
+				context.sendCommand(command, 0);
+			}, 5 * 1000);
 		}
 	}
 }
