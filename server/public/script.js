@@ -24,8 +24,6 @@ class Main {
 		window.addEventListener("load", function() {
 			document.body.style.display = "flex";
 		});
-
-		document.body.style.display = "flex";
 	}
 
 	static addFullscreen() {
@@ -171,11 +169,11 @@ class Main {
 					} else {
 						context.stream.style.transform = "RotateZ(" + rotation + "deg)";
 					}
-				};
+				}
 
 				fun();
 
-				context.stream.onresize = fun;
+				context.stream.addEventListener("load", fun);
 			}},
 			{alias: "led", name: "Led", type: "switch", default: 0},
 			{alias: "flash", name: "Flash", type: "switch", default: 0}
@@ -185,13 +183,17 @@ class Main {
 			for (let i = 0; i < list.length; i++) {
 				let current = list[i];
 
-				if (current.alias && config[current.alias]) {
+				if (config[current.alias]) {
 					current.item.v.textContent = config[current.alias];
 
 					if (list[i].type == "switch") {
 						current.item.v.textContent = ["OFF", "ON"][config[current.alias]];
-					} else {
-						current.item.i.value = config[current.alias];
+					}
+
+					current.item.i.value = config[current.alias];
+
+					if (current.fun) {
+						current.fun(config[current.alias]);
 					}
 				}
 			}
@@ -308,11 +310,11 @@ class Main {
 	}
 
 	static sendCommand(item, value) {
-		if (item.alias) {
-			this.socket.emit("command", item.alias, value);
-		} else {
+		if (item.fun) {
 			item.fun(value);
 		}
+
+		this.socket.emit("command", item.alias, value);
 	}
 }
 

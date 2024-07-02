@@ -65,6 +65,8 @@ export default class Handler {
 
 			let socket = request.socket;
 
+			socket.config = {};
+
 			context.uploaders.push(socket);
 
 			socket.on("readable", function() {
@@ -103,9 +105,13 @@ export default class Handler {
 
 					if (config.length < length) {break;}
 
-					context.io.emit("config", config);
+					let keys = Object.keys(config);
 
-					socket.config = config;
+					for (let i = 0; i < keys.length; i++) {
+						socket.config[keys[i]] = config[keys[i]];
+					};
+
+					context.io.emit("config", socket.config);
 				} else if (t == "f") {
 					let length = parseInt((await context.read(socket, 10)).toString());
 
@@ -232,6 +238,8 @@ export default class Handler {
 
 			uploader.write(alias + "\n");
 			uploader.write(value + "\n");
+
+			uploader.config[alias] = value;
 
 			if (uploader.commandTimeout) {
 				clearTimeout(uploader.commandTimeout);
