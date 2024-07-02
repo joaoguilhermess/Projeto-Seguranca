@@ -1,17 +1,38 @@
+import {Server as IO} from "socket.io";
 import Server from "./server.js";
-import SocketIO from "./socketio.js";
 import sharp from "sharp";
 
 export default class Handler {
 	static Init() {
 		this.boundary = "626f756e64617279";
 		this.receivers = [];
-
 		this.uploaders = [];
+
+		this.registrySocketIO();
 
 		this.registryStream();
 
 		this.registryHandler();
+	}
+
+	static registrySocketIO() {
+		var io = new IO(Server.server);
+
+		var context = this;
+
+		io.on("connection", function(socket) {
+			socket.on("command", function(alias, value) {
+				context.sendCommand(alias, value);
+			});
+
+			for (let i = 0; i < context.uploaders.length; i++) {
+				if (context.uploaders[i].config) {
+					return socket.emit("config", context.uploaders[i].config);
+				}	
+			}
+		});
+
+		this.io = io;
 	}
 
 	static registryStream() {
@@ -40,7 +61,7 @@ export default class Handler {
 		var context = this;
 
 		Server.registryPostScript("/stream", async function(request, response) {
-			// console.log("Uploader Connected");
+			context.io.emit("uploader", "connected");
 
 			let socket = request.socket;
 
@@ -52,47 +73,71 @@ export default class Handler {
 				}
 			});
 
-			socket.on("close", function() {
-				context.uploaders.splice(context.uploaders.indexOf(socket), 1);
-
-				if (socket.unlock) {
-					socket.unlock();
+			while (!socket.closed) {
+				if (socket.closeTimeout) {
+					clearTimeout(socket.closeTimeout);
 				}
-			});
 
-			while (true) {
-				let length = await context.read(socket, 10);
+				socket.closeTimeout = setTimeout(function() {
+					if (socket.unlock) {
+						socket.unlock();
+					}
 
-				if (length) {
-					length = parseInt(length.toString());
-				} else {
+					socket.end();
+
+					socket.destroy();
+
+					delete socket.closeTimeout;
+				}, 1000);
+
+				let t = (await context.read(socket, 1)).toString();
+
+				if (t.length != 1) {
 					break;
 				}
 
-				let frame = await context.read(socket, length);
+				if (t == "c") {
+					let length = parseInt((await context.read(socket, 10)).toString());
 
-				let fps = context.getFps(socket);
+					let config = JSON.parse((await context.read(socket, length)).toString());
 
-				SocketIO.sendEvent("fps", fps);
+					if (config.length < length) {break;}
 
-				let motion = await context.getMotion(socket, frame);
+					context.io.emit("config", config);
 
-				if (motion) {
-					SocketIO.sendEvent("motion", motion);
+					socket.config = config;
+				} else if (t == "f") {
+					let length = parseInt((await context.read(socket, 10)).toString());
 
-					if (motion > 40) {
-						context.startBlinking(socket);
+					let frame = await context.read(socket, length);
+
+					if (frame.length < length) {break;}
+
+					let fps = context.getFps(socket);
+
+					context.io.emit("fps", fps);
+
+					let motion = await context.getMotion(socket, frame);
+
+					if (motion) {
+						context.io.emit("motion", motion);
+
+						if (motion > 40) {
+							if (!socket.commandTimeout) {
+								context.startBlinking(socket);
+							}
+						}
 					}
-				}
 
-				if (frame.length > 0) {
 					for (let i = 0; i < context.receivers.length; i++) {
 						context.sendframe(context.receivers[i], frame);
 					}
-				} else {
-					break;
 				}
 			}
+
+			context.io.emit("uploader", "disconnected");
+
+			context.uploaders.splice(context.uploaders.indexOf(socket), 1);
 		});
 	}
 
@@ -154,7 +199,7 @@ export default class Handler {
 		let chunks = [];
 		let read = 0;
 
-		while (read < length) {
+		while (!socket.closed && read < length) {
 			if (socket._readableState.length < length - read) {
 				if (socket._readableState.length > 0) {
 					let buffer = socket.read();
@@ -177,14 +222,24 @@ export default class Handler {
 				read += buffer.length;
 			}
 		}
-
+	
 		return Buffer.concat(chunks);
 	}
 
 	static async sendCommand(alias, value) {
 		for (let i = 0; i < this.uploaders.length; i++) {
-			this.uploaders[i].write(alias + "\n");
-			this.uploaders[i].write(value + "\n");
+			let uploader = this.uploaders[i];
+
+			uploader.write(alias + "\n");
+			uploader.write(value + "\n");
+
+			if (uploader.commandTimeout) {
+				clearTimeout(uploader.commandTimeout);
+			}
+
+			uploader.commandTimeout = setTimeout(function() {
+				delete uploader.commandTimeout;
+			}, 2 * 1000);
 		}
 	}
 

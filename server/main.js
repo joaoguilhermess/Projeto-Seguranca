@@ -1,6 +1,5 @@
 import Server from "./server.js";
 import Util from "./util.js";
-import SocketIO from "./socketio.js";
 import Handler from "./handler.js";
 
 class Main {
@@ -12,8 +11,6 @@ class Main {
 		Server.registryFile("/", Util.joinPath("public", "index.html"));
 
 		Server.registryFolder("/public");
-
-		SocketIO.Init();
 
 		Handler.Init();
 

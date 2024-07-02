@@ -34,11 +34,14 @@ WiFiClient socket;
 
 sensor_t* sensor;
 
+String lastConfig = "";
+
 void connectWifi() {
 	if (WiFi.status() == WL_CONNECTED) {return;}
 
 	digitalWrite(LED_PIN, HIGH);
 	digitalWrite(FLASH_PIN, LOW);
+	lastConfig = "";
 
 	// Serial.print("Trying to Connect on SSID: ");
 	// Serial.print(SSID);
@@ -107,6 +110,19 @@ void initCamera() {
 	}
 }
 
+void sendSize(size_t size) {
+	String length = String(size);
+
+	while(length.length() < 10) {
+		length = "0" + length;
+	}
+
+	// Serial.print("length: ");
+	// Serial.println(length);
+
+	socket.print(length);
+}
+
 camera_fb_t* getFrame() {
 	camera_fb_t* buffer = esp_camera_fb_get();
 
@@ -119,55 +135,61 @@ camera_fb_t* getFrame() {
 	}
 }
 
-void getConfig() {
-	Serial.print("framesize: ");
-	Serial.println(sensor->status.framesize);
-	Serial.print("quality: ");
-	Serial.println(sensor->status.quality);
-	Serial.print("brightness: ");
-	Serial.println(sensor->status.brightness);
-	Serial.print("contrast: ");
-	Serial.println(sensor->status.contrast);
-	Serial.print("saturation: ");
-	Serial.println(sensor->status.saturation);
-	Serial.print("special_effect: ");
-	Serial.println(sensor->status.special_effect);
-	Serial.print("whitebal: ");
-	Serial.println(sensor->status.awb);
-	Serial.print("awb_gain: ");
-	Serial.println(sensor->status.awb_gain);
-	Serial.print("wb_mode: ");
-	Serial.println(sensor->status.wb_mode);
-	Serial.print("exposure_ctrl: ");
-	Serial.println(sensor->status.aec);
-	Serial.print("aec2: ");
-	Serial.println(sensor->status.aec2);
-	Serial.print("ae_level: ");
-	Serial.println(sensor->status.ae_level);
-	Serial.print("aec_value: ");
-	Serial.println(sensor->status.aec_value);
-	Serial.print("gain_ctrl: ");
-	Serial.println(sensor->status.agc);
-	Serial.print("agc_gain: ");
-	Serial.println(sensor->status.agc_gain);
-	Serial.print("gainceiling: ");
-	Serial.println(sensor->status.gainceiling);
-	Serial.print("bpc: ");
-	Serial.println(sensor->status.bpc);
-	Serial.print("wpc: ");
-	Serial.println(sensor->status.wpc);
-	Serial.print("raw_gma: ");
-	Serial.println(sensor->status.raw_gma);
-	Serial.print("lenc: ");
-	Serial.println(sensor->status.lenc);
-	Serial.print("hmirror: ");
-	Serial.println(sensor->status.hmirror);
-	Serial.print("vflip: ");
-	Serial.println(sensor->status.vflip);
-	Serial.print("dcw: ");
-	Serial.println(sensor->status.dcw);
-	Serial.print("colorbar: ");
-	Serial.println(sensor->status.colorbar);
+String getConfig() {
+	String json = "{";
+
+	json += "\"framesize\": ";
+	json += String(sensor->status.framesize);
+	json += ",\"quality\": ";
+	json += String(sensor->status.quality);
+	json += ",\"brightness\": ";
+	json += String(sensor->status.brightness);
+	json += ",\"contrast\": ";
+	json += String(sensor->status.contrast);
+	json += ",\"saturation\": ";
+	json += String(sensor->status.saturation);
+	json += ",\"special_effect\": ";
+	json += String(sensor->status.special_effect);
+	json += ",\"awb\": ";
+	json += String(sensor->status.awb);
+	json += ",\"awb_gain\": ";
+	json += String(sensor->status.awb_gain);
+	json += ",\"wb_mode\": ";
+	json += String(sensor->status.wb_mode);
+	json += ",\"aec\": ";
+	json += String(sensor->status.aec);
+	json += ",\"aec2\": ";
+	json += String(sensor->status.aec2);
+	json += ",\"ae_level\": ";
+	json += String(sensor->status.ae_level);
+	json += ",\"aec_value\": ";
+	json += String(sensor->status.aec_value);
+	json += ",\"agc\": ";
+	json += String(sensor->status.agc);
+	json += ",\"agc_gain\": ";
+	json += String(sensor->status.agc_gain);
+	json += ",\"gainceiling\": ";
+	json += String(sensor->status.gainceiling);
+	json += ",\"bpc\": ";
+	json += String(sensor->status.bpc);
+	json += ",\"wpc\": ";
+	json += String(sensor->status.wpc);
+	json += ",\"raw_gma\": ";
+	json += String(sensor->status.raw_gma);
+	json += ",\"lenc\": ";
+	json += String(sensor->status.lenc);
+	json += ",\"hmirror\": ";
+	json += String(sensor->status.hmirror);
+	json += ",\"vflip\": ";
+	json += String(sensor->status.vflip);
+	json += ",\"dcw\": ";
+	json += String(sensor->status.dcw);
+	json += ",\"colorbar\": ";
+	json += String(sensor->status.colorbar);
+
+	json += "}";
+
+	return json;
 }
 
 void runCommand(String command, int value) {
@@ -226,6 +248,7 @@ void connectSocket() {
 
 	digitalWrite(LED_PIN, HIGH);
 	digitalWrite(FLASH_PIN, LOW);
+	lastConfig = "";
 
 	// Serial.print("Trying to Connect on Server: ");
 	// Serial.print(HOST);
@@ -265,8 +288,6 @@ void setup() {
 	pinMode(FLASH_PIN, OUTPUT);
 
 	initCamera();
-
-	getConfig();
 }
 
 void loop() {
@@ -281,20 +302,25 @@ void loop() {
 		runCommand(socket.readStringUntil('\n'), socket.readStringUntil('\n').toInt());
 	}
 
+	String json = getConfig();
+
+	if (lastConfig != json) {
+		socket.print("c");
+
+		sendSize(json.length());
+
+		socket.print(json);
+
+		lastConfig = json;
+	}
+
+	socket.print("f");
+
 	camera_fb_t* frame = getFrame();
 
 	size_t size = frame->len;
 
-	String length = String(size);
-
-	while (length.length() < 10) {
-		length = "0" + length;
-	}
-
-	// Serial.print("length: ");
-	// Serial.println(length);
-
-	socket.print(length);
+	sendSize(size);
 
 	for (size_t i = 0; i < size; i += CHUNK) {
 		if (i + CHUNK < size) {

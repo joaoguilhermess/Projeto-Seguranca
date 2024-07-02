@@ -15,7 +15,7 @@ class Main {
 
 		this.addItems();
 
-		this.InitStream();
+		this.startStream();
 
 		this.addMenu();
 	}
@@ -39,10 +39,20 @@ class Main {
 	static InitSocketIO() {
 		var socket = io();
 
+		var context = this;
+
+		socket.on("uploader", function(status) {
+			if (status == "connected") {
+				context.startStream();
+			} else if (status == "disconnected") {
+				context.stopStream();
+			}
+		});
+
 		this.socket = socket;
 	}
 
-	static InitStream() {
+	static startStream() {
 		var context = this;
 
 		var fun = async function() {
@@ -70,6 +80,10 @@ class Main {
 		};
 
 		this.stream.src = this.streamUrl;
+	}
+
+	static stopStream() {
+		this.stream.src = "";
 	}
 
 	static addItems() {
@@ -143,12 +157,45 @@ class Main {
 			{alias: "vflip", name: "Vertical Flip", type: "switch", default: 0},
 			{alias: "dcw", name: "DCW", type: "switch", default: 1},
 			{alias: "colorbar", name: "Color Bar", type: "switch", default: 0},
-			{name: "Rotation", type: "select", default: 3, options: ["-270°", "-180°", "-90°", "0°", "90°", "180°", "270°"], fun: function(value) {
-				context.stream.style.transform = "RotateZ(" + [-270, -180, -90, 0, 90, 180, 270][value] + "deg)";
+			{alias: "rotation", name: "Rotation", type: "select", default: 3, options: ["-270°", "-180°", "-90°", "0°", "90°", "180°", "270°"], fun: function(value) {
+				var rotation = [-270, -180, -90, 0, 90, 180, 270][value];
+
+				var fun = function() {
+					if ([270, 90].includes(Math.abs(rotation))) {
+						var h = context.stream.offsetHeight;
+						var w = context.stream.offsetWidth;
+
+						var scale = Math.min(h, w) / Math.max(h,w);
+
+						context.stream.style.transform = "RotateZ(" + rotation + "deg) Scale(" + scale + ")";
+					} else {
+						context.stream.style.transform = "RotateZ(" + rotation + "deg)";
+					}
+				};
+
+				fun();
+
+				context.stream.onresize = fun;
 			}},
 			{alias: "led", name: "Led", type: "switch", default: 0},
 			{alias: "flash", name: "Flash", type: "switch", default: 0}
 		];
+
+		this.socket.on("config", function(config) {
+			for (let i = 0; i < list.length; i++) {
+				let current = list[i];
+
+				if (current.alias && config[current.alias]) {
+					current.item.v.textContent = config[current.alias];
+
+					if (list[i].type == "switch") {
+						current.item.v.textContent = ["OFF", "ON"][config[current.alias]];
+					} else {
+						current.item.i.value = config[current.alias];
+					}
+				}
+			}
+		});
 
 		for (let i = 0; i < list.length; i++) {
 			let item = document.createElement("item");
@@ -181,6 +228,11 @@ class Main {
 
 				item.append(value);
 				item.append(input);
+
+				item.v = value;
+				item.i = input;
+
+				list[i].item = item;
 			} else if (list[i].type == "slider") {
 				let input = document.createElement("input");
 				let min = document.createElement("value");
@@ -213,6 +265,11 @@ class Main {
 				item.append(min);
 				item.append(input);
 				item.append(max);
+
+				item.v = value;
+				item.i = input;
+
+				list[i].item = item;
 			} else if (list[i].type == "select") {
 				let input = document.createElement("select");
 				let value = document.createElement("value");
@@ -239,6 +296,11 @@ class Main {
 
 				item.append(value);
 				item.append(input);
+
+				item.v = value;
+				item.i = input;
+
+				list[i].item = item;
 			}
 
 			this.right.append(item);
