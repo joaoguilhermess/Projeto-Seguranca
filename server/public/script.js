@@ -180,10 +180,13 @@ class Main {
 		];
 
 		this.socket.on("config", function(config) {
+			console.log(config);
+			
 			for (let i = 0; i < list.length; i++) {
 				let current = list[i];
 
 				if (config[current.alias]) {
+
 					current.item.v.textContent = config[current.alias];
 
 					if (list[i].type == "switch") {

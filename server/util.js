@@ -19,6 +19,14 @@ export default class Util {
 		return fs.createReadStream(path);
 	}
 
+	static writeFile(path, content) {
+		return fs.writeFileSync(path, content);
+	}
+
+	static createFolder(path) {
+		return fs.mkdirSync(path);
+	}
+
 	static getAddress() {
 		if (process.platform == "win32") {
 			return os.networkInterfaces()["Ethernet 2"][1].address;

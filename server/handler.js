@@ -1,4 +1,5 @@
 import {Server as IO} from "socket.io";
+import Encoder from "./encoder.js";
 import Server from "./server.js";
 import sharp from "sharp";
 
@@ -63,9 +64,34 @@ export default class Handler {
 		Server.registryPostScript("/stream", async function(request, response) {
 			context.io.emit("uploader", "connected");
 
-			let socket = request.socket;
+			var socket = request.socket;
 
-			socket.config = {};
+			socket.config = {
+				framesize: 11,
+				quality: 10,
+				brightness: 0,
+				contrast: 0,
+				saturation: 0,
+				special_effect: 0,
+				awb: 1,
+				awb_gain: 1,
+				wb_mode: 0,
+				aec: 1,
+				aec2: 0,
+				ae_level: 0,
+				aec_value: 168,
+				agc: 1,
+				agc_gain: 0,
+				gainceiling: 0,
+				bpc: 0,
+				wpc: 1,
+				raw_gma: 1,
+				lenc: 1,
+				hmirror: 0,
+				vflip: 0,
+				dcw: 1,
+				colorbar: 0
+			};
 
 			context.uploaders.push(socket);
 
@@ -73,7 +99,15 @@ export default class Handler {
 				if (socket.unlock) {
 					socket.unlock();
 				}
-			});
+			}); 
+
+			let encoder = new Encoder(socket.config);
+
+			setInterval(function() {
+				encoder.stop();
+
+				encoder = new Encoder(socket.config);
+			}, 10 * 60 * 1000);
 
 			while (!socket.closed) {
 				if (socket.closeTimeout) {
@@ -111,6 +145,12 @@ export default class Handler {
 						socket.config[keys[i]] = config[keys[i]];
 					};
 
+					if (socket.config.framesize != encoder.framesize) {
+						encoder.stop();
+
+						encoder = new Encoder(socket.config);
+					}
+
 					context.io.emit("config", socket.config);
 				} else if (t == "f") {
 					let length = parseInt((await context.read(socket, 10)).toString());
@@ -128,18 +168,22 @@ export default class Handler {
 					if (motion) {
 						context.io.emit("motion", motion);
 
-						if (motion > 40) {
-							if (!socket.commandTimeout) {
-								context.startBlinking(socket);
-							}
-						}
+						// if (motion > 40) {
+						// 	if (!socket.commandTimeout) {
+						// 		context.startBlinking(socket);
+						// 	}
+						// }
 					}
 
 					for (let i = 0; i < context.receivers.length; i++) {
 						context.sendframe(context.receivers[i], frame);
 					}
+
+					encoder.write(frame);
 				}
 			}
+
+			encoder.stop();
 
 			context.io.emit("uploader", "disconnected");
 

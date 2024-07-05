@@ -1,6 +1,7 @@
+import Handler from "./handler.js";
+import Encoder from "./encoder.js";
 import Server from "./server.js";
 import Util from "./util.js";
-import Handler from "./handler.js";
 
 class Main {
 	static Init() {
@@ -11,6 +12,8 @@ class Main {
 		Server.registryFile("/", Util.joinPath("public", "index.html"));
 
 		Server.registryFolder("/public");
+
+		Encoder.Init();
 
 		Handler.Init();
 

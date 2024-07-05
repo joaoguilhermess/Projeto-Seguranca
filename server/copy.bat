@@ -1,0 +1,1 @@
+scp -r -P 8022 "C:\Users\User\Desktop\Projeto Segurança\server" @192.168.1.3:/data/data/com.termux/files/home/
