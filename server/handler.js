@@ -1,7 +1,7 @@
 import {Server as IO} from "socket.io";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
-// import sharp from "sharp";
+import sharp from "sharp";
 
 export default class Handler {
 	static Init() {
@@ -64,6 +64,10 @@ export default class Handler {
 		Server.server.on("upgrade", async function(request, socket, head) {
 			if (request.headers.upgrade != "uploader") {return};
 
+			socket.id = Buffer.from(Date.now().toString()).toString("hex");
+
+			console.log("Uploader Connected");
+
 			socket.write("start\n");
 
 			// socket.on("error", function(...args) {console.log("error", ...args);});
@@ -84,7 +88,7 @@ export default class Handler {
 				aec: 1,
 				aec2: 0,
 				ae_level: 0,
-				aec_value: 168,
+				aec_value: 300,
 				agc: 1,
 				agc_gain: 0,
 				gainceiling: 0,
@@ -107,6 +111,8 @@ export default class Handler {
 			let encoder = new Encoder(socket.config);
 
 			setInterval(function() {
+				console.log("this2?");
+
 				encoder.stop();
 
 				encoder = new Encoder(socket.config);
@@ -151,6 +157,8 @@ export default class Handler {
 					};
 
 					if (socket.config.framesize != encoder.framesize) {
+						console.log("this1?");
+
 						encoder.stop();
 
 						encoder = new Encoder(socket.config);
@@ -168,17 +176,21 @@ export default class Handler {
 
 					context.io.emit("fps", fps);
 
-					// let motion = await context.getMotion(socket, frame);
+					if (!socket.processing) {
+						socket.processing = true;
 
-					// if (motion) {
-						// context.io.emit("motion", motion);
+						context.getMotion(socket, frame).then(function(motion) {
+							context.io.emit("motion", motion);
+							
+							socket.processing = false;
 
-						// if (motion > 40) {
-						// 	if (!socket.commandTimeout) {
-						// 		context.startBlinking(socket);
-						// 	}
-						// }
-					// }
+							if (motion > 40) {
+								if (!socket.commandTimeout) {
+									context.startBlinking(socket);
+								}
+							}
+						});
+					}
 
 					encoder.write(frame);
 
@@ -188,7 +200,7 @@ export default class Handler {
 				}
 			}
 
-			console.log("stop");
+			console.log("Uploader Disconnected");
 
 			encoder.stop();
 
@@ -199,7 +211,11 @@ export default class Handler {
 	}
 
 	static async getMotion(socket, frame) {
-		var raw = new Uint8ClampedArray(await sharp(frame).resize(32).grayscale().raw().toBuffer());
+		var now = performance.now();
+
+		var raw = new Uint8ClampedArray(await sharp(frame).raw().toBuffer());
+
+		console.log(socket.id, performance.now() - now);
 
 		if (!socket.last) {
 			socket.last = raw;

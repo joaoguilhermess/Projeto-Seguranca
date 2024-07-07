@@ -4,8 +4,8 @@ import net from "net";
 class Emulator {
 	static async Init() {
 		var buffer = Util.readFile("./image2.jpg");
-		// var host = "192.168.1.3";
-		var host = "192.168.1.10";
+		var host = "192.168.1.3";
+		// var host = "192.168.1.10";
 		var chunk = 1024;
 
 		var socket = new net.Socket();
@@ -23,7 +23,7 @@ class Emulator {
 		console.log("Connected");
 
 		await new Promise(function(resolve, reject) {
-			setTimeout(resolve, 1000);
+			setTimeout(resolve, 2500);
 		});
 
 		socket.write("POST /stream HTTP/1.1");
@@ -63,7 +63,7 @@ class Emulator {
 			// 	}
 			// }
 
-			await this.delay(1000/25);
+			await this.delay(1000/12.5);
 		}
 
 		console.log("Disconnected");
