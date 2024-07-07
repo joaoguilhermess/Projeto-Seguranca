@@ -26,22 +26,25 @@
 #define PASSWORD "Nada2806"
 
 #define HOST "192.168.1.10"
+// #define HOST "192.168.1.3"
 #define PORT 3000
 
 #define CHUNK 1024
 
 WiFiClient socket;
-
 sensor_t* sensor;
-
 String lastConfig = "";
+
+void reset() {
+	digitalWrite(LED_PIN, HIGH);
+	digitalWrite(FLASH_PIN, LOW);
+	lastConfig = "";
+}
 
 void connectWifi() {
 	if (WiFi.status() == WL_CONNECTED) {return;}
 
-	digitalWrite(LED_PIN, HIGH);
-	digitalWrite(FLASH_PIN, LOW);
-	lastConfig = "";
+	reset();
 
 	// Serial.print("Trying to Connect on SSID: ");
 	// Serial.print(SSID);
@@ -193,7 +196,7 @@ String getConfig() {
 }
 
 void runCommand(String command, int value) {
-	// Serial.print(config);
+	// Serial.print(command);
 	// Serial.print(": ");
 	// Serial.println(value);
 
@@ -246,9 +249,7 @@ void clearFrame(camera_fb_t* buffer) {
 void connectSocket() {
 	if (socket.connected()) {return;}
 
-	digitalWrite(LED_PIN, HIGH);
-	digitalWrite(FLASH_PIN, LOW);
-	lastConfig = "";
+	reset();
 
 	// Serial.print("Trying to Connect on Server: ");
 	// Serial.print(HOST);
@@ -275,14 +276,16 @@ void connectSocket() {
 	socket.print("Host: ");
 	socket.print(HOST);
 	socket.print("\r\n");
-	socket.print("Connection: close");
+	socket.print("Upgrade: uploader");
+	socket.print("\r\n");
+	socket.print("Connection: Upgrade");
 	socket.print("\r\n\r\n");
 
-	socket.readStringUntil('\r');
+	socket.readStringUntil('\n');
 }
 
 void setup() {
-	Serial.begin(115200);
+	// Serial.begin(115200);
 
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(FLASH_PIN, OUTPUT);

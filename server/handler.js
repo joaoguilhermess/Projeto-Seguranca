@@ -1,7 +1,7 @@
 import {Server as IO} from "socket.io";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
-import sharp from "sharp";
+// import sharp from "sharp";
 
 export default class Handler {
 	static Init() {
@@ -61,10 +61,15 @@ export default class Handler {
 	static registryHandler() {
 		var context = this;
 
-		Server.registryPostScript("/stream", async function(request, response) {
-			context.io.emit("uploader", "connected");
+		Server.server.on("upgrade", async function(request, socket, head) {
+			if (request.headers.upgrade != "uploader") {return};
 
-			var socket = request.socket;
+			socket.write("start\n");
+
+			// socket.on("error", function(...args) {console.log("error", ...args);});
+			// socket.on("timeout", function(...args) {console.log("timeout", ...args);});
+			// socket.on("end", function(...args) {console.log("end", ...args);});
+			// socket.on("close", function(...args) {console.log("close", ...args);});
 
 			socket.config = {
 				framesize: 11,
@@ -94,12 +99,10 @@ export default class Handler {
 			};
 
 			context.uploaders.push(socket);
-
-			socket.on("readable", function() {
-				if (socket.unlock) {
-					socket.unlock();
-				}
-			}); 
+			
+			socket.on("readable", function() {if (socket.unlock) {socket.unlock();}});
+			socket.on("error", function() {if (socket.unlock) {socket.unlock();}});
+			socket.on("end", function() {if (socket.unlock) {socket.unlock();}});
 
 			let encoder = new Encoder(socket.config);
 
@@ -135,9 +138,11 @@ export default class Handler {
 				if (t == "c") {
 					let length = parseInt((await context.read(socket, 10)).toString());
 
-					let config = JSON.parse((await context.read(socket, length)).toString());
+					let config = (await context.read(socket, length)).toString();
 
-					if (config.length < length) {break;}
+					if (config.length != length) {break;}
+
+					config = JSON.parse(config);
 
 					let keys = Object.keys(config);
 
@@ -157,31 +162,33 @@ export default class Handler {
 
 					let frame = await context.read(socket, length);
 
-					if (frame.length < length) {break;}
+					if (frame.length != length) {break;}
 
 					let fps = context.getFps(socket);
 
 					context.io.emit("fps", fps);
 
-					let motion = await context.getMotion(socket, frame);
+					// let motion = await context.getMotion(socket, frame);
 
-					if (motion) {
-						context.io.emit("motion", motion);
+					// if (motion) {
+						// context.io.emit("motion", motion);
 
 						// if (motion > 40) {
 						// 	if (!socket.commandTimeout) {
 						// 		context.startBlinking(socket);
 						// 	}
 						// }
-					}
+					// }
+
+					encoder.write(frame);
 
 					for (let i = 0; i < context.receivers.length; i++) {
 						context.sendframe(context.receivers[i], frame);
 					}
-
-					encoder.write(frame);
 				}
 			}
+
+			console.log("stop");
 
 			encoder.stop();
 

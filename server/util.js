@@ -19,6 +19,10 @@ export default class Util {
 		return fs.createReadStream(path);
 	}
 
+	static readFile(path) {
+		return fs.readFileSync(path);
+	}
+
 	static writeFile(path, content) {
 		return fs.writeFileSync(path, content);
 	}

@@ -19,7 +19,7 @@ export default class Server {
 			if (Util.readStats(path).isFile()) {
 				var stream = Util.readStream(path);
 
-				response.contentType(path);
+				// response.contentType(path);
 
 				return stream.pipe(response);
 			}
