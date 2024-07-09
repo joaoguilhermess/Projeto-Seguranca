@@ -1,11 +1,16 @@
 import {Server as IO} from "socket.io";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
-import sharp from "sharp";
+import crypto from "crypto";
+var sharp;
+
+if (process.platform == "win32") {
+	sharp = (await import("sharp")).default;
+}
 
 export default class Handler {
-	static Init() {
-		this.boundary = "626f756e64617279";
+	static async Init() {
+		this.boundary = "thisisaborder";
 		this.receivers = [];
 		this.uploaders = [];
 
@@ -22,14 +27,13 @@ export default class Handler {
 		var context = this;
 
 		io.on("connection", function(socket) {
-			socket.on("command", function(alias, value) {
+			socket.on("command", function(id, alias, value) {
 				context.sendCommand(alias, value);
 			});
 
 			for (let i = 0; i < context.uploaders.length; i++) {
-				if (context.uploaders[i].config) {
-					return socket.emit("config", context.uploaders[i].config);
-				}	
+				socket.emit("uploader", context.uploaders[i].id, "connected");
+				socket.emit("config", context.uploaders[i].id, context.uploaders[i].config);
 			}
 		});
 
@@ -39,7 +43,9 @@ export default class Handler {
 	static registryStream() {
 		var context = this;
 
-		Server.registryScript("/stream", async function(request, response) {
+		Server.registryScript("/stream/*", async function(request, response) {
+			request.socket.streamId = request.url.split("/")[2];
+
 			request.socket.write("HTTP/1.1 200 OK\r\n");
 			request.socket.write("Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n");
 			request.socket.write("Pragma: no-cache\r\n");
@@ -49,12 +55,17 @@ export default class Handler {
 			context.receivers.push(request.socket);
 
 			request.socket.on("close", function() {
-				context.receivers.splice(context.receivers.indexOf(request.socket), 1);
+				for (let i = 0; i < context.receivers.length;) {
+					if (context.receivers[i].closed) {
+						context.receivers.splice(i, 1);
+						i -= 1;
+					}
+				}
 			});
 
-			// console.log("Receiver Connected");
+			console.log("Receiver Connected");
 
-			// console.log("Receivers:", context.receivers.length);
+			console.log("Receivers:", context.receivers.length);
 		});
 	}
 
@@ -64,9 +75,9 @@ export default class Handler {
 		Server.server.on("upgrade", async function(request, socket, head) {
 			if (request.headers.upgrade != "uploader") {return};
 
-			socket.id = Buffer.from(Date.now().toString()).toString("hex");
-
 			console.log("Uploader Connected");
+
+			socket.id = "id" + crypto.randomBytes(16).toString("hex");
 
 			socket.write("start\n");
 
@@ -104,6 +115,9 @@ export default class Handler {
 
 			context.uploaders.push(socket);
 			
+			context.io.emit("uploader", socket.id, "connected");
+			context.io.emit("config", socket.id, socket.config);
+
 			socket.on("readable", function() {if (socket.unlock) {socket.unlock();}});
 			socket.on("error", function() {if (socket.unlock) {socket.unlock();}});
 			socket.on("end", function() {if (socket.unlock) {socket.unlock();}});
@@ -111,9 +125,7 @@ export default class Handler {
 			let encoder = new Encoder(socket.config);
 
 			setInterval(function() {
-				console.log("this2?");
-
-				encoder.stop();
+				encoder.save();
 
 				encoder = new Encoder(socket.config);
 			}, 10 * 60 * 1000);
@@ -157,14 +169,12 @@ export default class Handler {
 					};
 
 					if (socket.config.framesize != encoder.framesize) {
-						console.log("this1?");
-
-						encoder.stop();
+						encoder.save();
 
 						encoder = new Encoder(socket.config);
 					}
 
-					context.io.emit("config", socket.config);
+					context.io.emit("config", socket.id, socket.config);
 				} else if (t == "f") {
 					let length = parseInt((await context.read(socket, 10)).toString());
 
@@ -174,48 +184,40 @@ export default class Handler {
 
 					let fps = context.getFps(socket);
 
-					context.io.emit("fps", fps);
+					context.io.emit("fps", socket.id, fps);
 
-					if (!socket.processing) {
-						socket.processing = true;
+					if (process.platform == "win32") {
+						let motion = await context.getMotion(socket, frame);
 
-						context.getMotion(socket, frame).then(function(motion) {
-							context.io.emit("motion", motion);
+						if (motion) {
+							context.io.emit("motion", socket.id, motion);
 							
-							socket.processing = false;
-
-							if (motion > 40) {
-								if (!socket.commandTimeout) {
-									context.startBlinking(socket);
-								}
-							}
-						});
+							// if (motion > 40) {
+							// 	if (!socket.commandTimeout) {
+							// 		context.startBlinking(socket);
+							// 	}
+							// }
+						}
 					}
 
 					encoder.write(frame);
 
-					for (let i = 0; i < context.receivers.length; i++) {
-						context.sendframe(context.receivers[i], frame);
-					}
+					context.sendframe(socket.id, frame);
 				}
 			}
 
+			encoder.save();
+
 			console.log("Uploader Disconnected");
 
-			encoder.stop();
-
-			context.io.emit("uploader", "disconnected");
-
 			context.uploaders.splice(context.uploaders.indexOf(socket), 1);
+
+			context.io.emit("uploader", socket.id, "disconnected");
 		});
 	}
 
 	static async getMotion(socket, frame) {
-		var now = performance.now();
-
-		var raw = new Uint8ClampedArray(await sharp(frame).raw().toBuffer());
-
-		console.log(socket.id, performance.now() - now);
+		var raw = new Uint8ClampedArray(await sharp(frame).resize(32).grayscale().raw().toBuffer());
 
 		if (!socket.last) {
 			socket.last = raw;
@@ -260,12 +262,25 @@ export default class Handler {
 		return socket.fps.length;
 	}
 
-	static async sendframe(socket, frame) {
-		socket.write("--" + this.boundary + "\r\n");
-		socket.write("Content-Type: image/jpeg\r\n");
-		socket.write("Content-Length: " + frame.length + "\r\n\r\n");
+	static async sendframe(id, frame) {
+		for (let i = 0; i < this.receivers.length; i++) {
+			if (this.receivers[i].closed) {
+				this.receivers.splice(i, 1);
+				i -= 1;
+			}
+		}
 
-		socket.write(frame);
+		for (let i = 0; i < this.receivers.length; i++) {
+			let receiver = this.receivers[i];
+
+			if (receiver.streamId != id) {continue;}
+
+			receiver.write("--" + this.boundary + "\r\n");
+			receiver.write("Content-Type: image/jpeg\r\n");
+			receiver.write("Content-Length: " + frame.length + "\r\n\r\n");
+
+			receiver.write(frame);
+		}
 	}
 
 	static async read(socket, length) {

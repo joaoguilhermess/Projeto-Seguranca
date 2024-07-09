@@ -57,21 +57,25 @@ export default class Encoder {
 			"-i",
 			"-",
 			"-c:v",
-			"libx264",
+			"libx265",
 			"-vf",
 			"format=yuv420p",
 			"-r",
-			"30",
+			"10",
 			// "-shortest",
 			"-movflags",
 			"+faststart",
+			"-preset",
+			"ultrafast",
+			"-crf",
+			"18",
 			Util.joinPath(Encoder.folder, file)
 		]);
 
 		console.log("New Video:", file);
 
 		// encoder.stderr.on("data", function(data) {
-		// 	console.log(data.toString());
+			// console.log(data.toString());
 		// });	
 
 		encoder.on("close", function(status) {
@@ -89,10 +93,12 @@ export default class Encoder {
 	}
 
 	write(buffer) {
-		this.encoder.stdin.write(buffer);
+		try {
+			this.encoder.stdin.write(buffer);
+		} catch {}
 	}
 
-	stop() {
+	save() {
 		this.encoder.stdin.end();
 	}
 }

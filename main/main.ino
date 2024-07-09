@@ -48,26 +48,26 @@ void connectWifi() {
 
 	reset();
 
-	Serial.print("Trying to Connect on SSID: ");
-	Serial.print(SSID);
-	Serial.print(" With Password: ");
-	Serial.println(PASSWORD);
+	// Serial.print("Trying to Connect on SSID: ");
+	// Serial.print(SSID);
+	// Serial.print(" With Password: ");
+	// Serial.println(PASSWORD);
 
 	WiFi.begin(SSID, PASSWORD);
 
 	while (WiFi.status() != WL_CONNECTED) {
-		Serial.print(".");
+		// Serial.print(".");
 
 		delay(INTERVAL);
 	}
 
-	Serial.println();
-	Serial.println("Wifi Connected");
+	// Serial.println();
+	// Serial.println("Wifi Connected");
 }
 
 void restart() {
-	Serial.println("Restarting...");
-	Serial.println("");
+	// Serial.println("Restarting...");
+	// Serial.println("");
 
 	delay(INTERVAL);
 
@@ -108,8 +108,8 @@ void initCamera() {
 	sensor = esp_camera_sensor_get();
 
 	if (e != ESP_OK) {
-		Serial.print("Camera Error: 0x");
-		Serial.println(e);
+		// Serial.print("Camera Error: 0x");
+		// Serial.println(e);
 
 		restart();
 	}
@@ -122,8 +122,8 @@ void sendSize(size_t size) {
 		length = "0" + length;
 	}
 
-	Serial.print("length: ");
-	Serial.println(length);
+	// Serial.print("length: ");
+	// Serial.println(length);
 
 	socket.print(length);
 }
@@ -134,7 +134,7 @@ camera_fb_t* getFrame() {
 	if (buffer) {
 		return buffer;
 	} else {
-		Serial.println("getFrame Falied");
+		// Serial.println("getFrame Falied");
 
 		restart();
 	}
@@ -198,9 +198,9 @@ String getConfig() {
 }
 
 void runCommand(String command, int value) {
-	Serial.print(command);
-	Serial.print(": ");
-	Serial.println(value);
+	// Serial.print(command);
+	// Serial.print(": ");
+	// Serial.println(value);
 
 	if (command == "framesize") {sensor->set_framesize(sensor, (framesize_t) value); return;}
 	if (command == "quality") {sensor->set_quality(sensor, value); return;}
@@ -253,10 +253,10 @@ void connectSocket() {
 
 	reset();
 
-	Serial.print("Trying to Connect on Server: ");
-	Serial.print(HOST);
-	Serial.print(":");
-	Serial.println(PORT);
+	// Serial.print("Trying to Connect on Server: ");
+	// Serial.print(HOST);
+	// Serial.print(":");
+	// Serial.println(PORT);
 
 	while (!socket.connected()) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -265,13 +265,13 @@ void connectSocket() {
 
 		socket.connect(HOST, PORT);
 
-		Serial.print(".");
+		// Serial.print(".");
 
 		delay(INTERVAL);
 	}
 
-	Serial.println();
-	Serial.println("Socket Connected");
+	// Serial.println();
+	// Serial.println("Socket Connected");
 
 	socket.print("POST /stream HTTP/1.1");
 	socket.print("\r\n");
@@ -287,7 +287,7 @@ void connectSocket() {
 }
 
 void setup() {
-	Serial.begin(115200);
+	// Serial.begin(115200);
 
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(FLASH_PIN, OUTPUT);
@@ -301,8 +301,8 @@ void loop() {
 	connectSocket();
 
 	while (socket.available()) {
-		Serial.print("Available: ");
-		Serial.println(socket.available());
+		// Serial.print("Available: ");
+		// Serial.println(socket.available());
 
 		runCommand(socket.readStringUntil('\n'), socket.readStringUntil('\n').toInt());
 	}

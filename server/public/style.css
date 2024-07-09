@@ -45,25 +45,32 @@ body {
 	align-items: center;
 }
 
-main {
+streams {
 	display: flex;
 	height: 100%;
 	flex-grow: 1;
-	flex-direction: column;
+	flex-wrap: wrap;
+/*	justify-content: center;*/
+/*	align-items: center;*/
 }
 
-main stream {
+streams container {
 	display: flex;
 	height: 100%;
-	justify-content: center;
+	width: 100%;
+	border-style: solid;
+	border-width: 1px;
+	border-color: rgba(40, 40, 40, 1.0);
+/*	justify-content: center;*/
+/*	align-items: center;*/
 }
 
-main stream img {
+streams container img {
 	display: none;
 	object-fit: contain;
 }
 
-main bar {
+streams container bar {
 	position: fixed;
 	display: flex;
 	height: fit-content;
@@ -72,7 +79,7 @@ main bar {
 	padding: 12px;
 }
 
-main bar item {
+streams container bar item {
 	display: flex;
 	height: fit-content;
 	width: fit-content;
@@ -80,7 +87,7 @@ main bar item {
 	gap: 12px;
 }
 
-main bar item title {
+streams container bar item title {
 	display: flex;
 	font-family: "Poppins";
 	font-size: 12px;
@@ -88,7 +95,7 @@ main bar item title {
 	color: rgba(150, 150, 150, 1.0);
 }
 
-main bar item value {
+streams container bar item value {
 	display: flex;
 	font-family: "Poppins";
 	font-size: 12px;

@@ -3,9 +3,9 @@ import net from "net";
 
 class Emulator {
 	static async Init() {
-		var buffer = Util.readFile("./image2.jpg");
-		var host = "192.168.1.3";
-		// var host = "192.168.1.10";
+		var buffer = Util.readFile("./image3.jpg");
+		// var host = "192.168.1.3";
+		var host = "192.168.1.10";
 		var chunk = 1024;
 
 		var socket = new net.Socket();
@@ -63,7 +63,7 @@ class Emulator {
 			// 	}
 			// }
 
-			await this.delay(1000/12.5);
+			await this.delay(1000/2);
 		}
 
 		console.log("Disconnected");

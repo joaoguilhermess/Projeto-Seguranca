@@ -1,21 +1,21 @@
 class Main {
 	static Init() {
-		this.main = document.body.querySelector("main");
-		this.stream = this.main.querySelector("img");
-		this.bar = this.main.querySelector("bar");
+		this.streams = document.body.querySelector("streams");
 		this.right = document.body.querySelector("right");
 
-		this.streamUrl = "/stream";
+		var context = this;
+
+		new ResizeObserver(function() {
+			context.fitStreams();
+		}).observe(this.streams);
+
+		this.baseStreamUrl = "/stream/";
 
 		this.addOnload();
 
 		this.addFullscreen();
 
 		this.InitSocketIO();
-
-		this.addItems();
-
-		this.startStream();
 
 		this.addMenu();
 	}
@@ -27,7 +27,7 @@ class Main {
 	}
 
 	static addFullscreen() {
-		window.addEventListener("click", function() {
+		this.streams.addEventListener("click", function() {
 			if (!document.fullscreen) {
 				document.body.requestFullscreen();
 			}
@@ -39,24 +39,30 @@ class Main {
 
 		var context = this;
 
-		socket.on("uploader", function(status) {
+		socket.on("uploader", function(id, status) {
 			if (status == "connected") {
-				context.startStream();
+				context.addStream(id);
 			} else if (status == "disconnected") {
-				context.stopStream();
+				context.removeStream(id);
 			}
 		});
 
 		this.socket = socket;
 	}
 
-	static startStream() {
+	static addStream(id) {
+		var container = document.createElement("container");
+		var stream = document.createElement("img");
+		var bar = document.createElement("bar");
+
+		stream.id = id;
+
 		var context = this;
 
 		var fun = async function() {
-			context.stream.onerror = null;
+			stream.onerror = null;
 
-			context.stream.src = "";
+			stream.src = "";
 
 			await new Promise(function(resolve, reject) {
 				setTimeout(function() {
@@ -64,51 +70,106 @@ class Main {
 				}, 1000);
 			});
 
-			context.stream.onerror = fun;
+			stream.onerror = fun;
 
-			context.stream.src = context.streamUrl;
+			stream.src = context.baseStreamUrl + id;
 		};
 
-		this.stream.onerror = fun;
+		stream.onerror = fun;
 
-		this.stream.onload = function() {
-			context.stream.onload = null;
+		stream.onload = function() {
+			stream.onload = null;
 
-			context.stream.style.display = "flex";
+			stream.style.display = "flex";
 		};
 
-		this.stream.src = this.streamUrl;
+		stream.src = this.baseStreamUrl + id;
+
+		container.append(stream);
+		container.append(bar);
+
+		this.addItems(bar);
+
+		this.streams.append(container);
+
+		this.fitStreams();
 	}
 
-	static stopStream() {
-		this.stream.src = "";
+	static fitStreams() {
+		var list = this.streams.children;
+		
+		if (list.length == 0) {return;}
+
+		console.log("length:", list.length);
+
+		var k = Math.sqrt(list.length);
+
+		if (k - Math.floor(k) > 0) {
+			k += 1;
+		}
+
+		k = Math.floor(k);
+
+		var a = k;
+		var b = k;
+		var c = a * b;
+
+		if (list.length == 3) {
+			a = 1;
+			b = 3;
+		}
+
+		while (c - list.length >= k) {
+			console.log("c:", c);
+
+			if (this.streams.offsetWidth >= this.streams.offsetHeight) {
+				a -= 1;
+			} else {
+				b -= 1;
+			}
+
+			c = a * b;
+		}
+
+		console.log(a + "x" + b, c);
+
+		for (let i = 0; i < list.length; i++) {
+			list[i].style.maxHeight = 100 / a + "%";
+			list[i].style.maxWidth = 100 / b + "%";
+		}
 	}
 
-	static addItems() {
-		var fps = this.addItem("FPS", 0);
+	static removeStream(id) {
+		this.streams.querySelector("#" + id).parentElement.remove();
 
-		this.socket.on("fps", function(value) {
+		this.fitStreams();
+	}
+
+	static addItems(parent) {
+		var fps = this.addItem(parent, "FPS", 0);
+
+		this.socket.on("fps", function(id, value) {
 			fps.value.textContent = value;
 		});
 
-		var motion = this.addItem("Motion", "0%");
+		var motion = this.addItem(parent, "Motion", "0%");
 
-		this.socket.on("motion", function(percent) {
+		this.socket.on("motion", function(id, percent) {
 			motion.value.textContent = percent.toFixed(2) + "%";
 
-			if (motion.timeout) {
-				clearTimeout(motion.timeout);
+			// if (motion.timeout) {
+			// 	clearTimeout(motion.timeout);
 
-				motion.timeout = null;
-			}
+			// 	motion.timeout = null;
+			// }
 
-			motion.timeout = setTimeout(function() {
-				motion.value.textContent = "0%";
-			}, 1000/4);
+			// motion.timeout = setTimeout(function() {
+			// 	motion.value.textContent = "0%";
+			// }, 1000/4);
 		});
 	}
 
-	static addItem(_title, _value) {
+	static addItem(parent, _title, _value) {
 		var item = document.createElement("item");
 		var title = document.createElement("title");
 		var value = document.createElement("value");
@@ -122,7 +183,7 @@ class Main {
 		item.append(title);
 		item.append(value);
 
-		this.bar.append(item);
+		parent.append(item);
 
 		return item;
 	}
@@ -131,6 +192,7 @@ class Main {
 		var context = this;
 		
 		var list = [
+			{alias: "uploader", name: "Uploader", type: "select", default: 0, options: []},
 			{alias: "framesize", name: "Resolution", type: "select", default: 11, options: ["96x96", "QQVGA(160x120)", "QCIF(176x144)", "HQVGA(240x176)", "240x240", "QVGA(320x240)", "CIF(400x296)", "HVGA(480x320)", "VGA(640x480)", "SVGA(800x600)", "XGA(1024x768)", "HD(1280x720)", "SXGA(1280x1024)", "UXGA(1600x1200)"]},
 			{alias: "jpeg_quality", name: "Quality", type: "slider", default: 10, min: 10, max: 63},
 			{alias: "brightness", name: "Brightness", type: "slider", default: 0, min: -2, max: 2},
@@ -179,15 +241,17 @@ class Main {
 			{alias: "flash", name: "Flash", type: "switch", default: 0}
 		];
 
-		this.socket.on("config", function(config) {
-			console.log(config);
-			
+		this.socket.on("config", function(id, config) {
 			for (let i = 0; i < list.length; i++) {
 				let current = list[i];
 
 				if (config[current.alias]) {
 
-					current.item.v.textContent = config[current.alias];
+					if (list[i].type == "select") {
+						current.item.v.textContent = config[current.alias] + 1;
+					} else {
+						current.item.v.textContent = config[current.alias];
+					}
 
 					if (list[i].type == "switch") {
 						current.item.v.textContent = ["OFF", "ON"][config[current.alias]];
@@ -291,10 +355,10 @@ class Main {
 
 				input.value = list[i].default;
 
-				value.textContent = input.value;
+				value.textContent = parseInt(input.value) + 1;
 
 				input.addEventListener("input", function(event) {
-					value.textContent = input.value;
+					value.textContent = parseInt(input.value) + 1;
 
 					context.sendCommand(list[i], input.value);
 				});
