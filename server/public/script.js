@@ -381,7 +381,9 @@ class Main {
 			item.fun(value);
 		}
 
-		this.socket.emit("command", item.alias, value);
+		console.log(item.alias, value);
+
+		this.socket.emit("command", "", item.alias, value);
 	}
 }
 

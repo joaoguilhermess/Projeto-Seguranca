@@ -4,8 +4,8 @@ import net from "net";
 class Emulator {
 	static async Init() {
 		var buffer = Util.readFile("./image3.jpg");
-		// var host = "192.168.1.3";
-		var host = "192.168.1.10";
+		var host = "192.168.1.3";
+		// var host = "192.168.1.10";
 		var chunk = 1024;
 
 		var socket = new net.Socket();

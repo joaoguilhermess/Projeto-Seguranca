@@ -44,23 +44,32 @@ export default class Handler {
 		var context = this;
 
 		Server.registryScript("/stream/*", async function(request, response) {
-			request.socket.streamId = request.url.split("/")[2];
+			let socket = request.socket;
 
-			request.socket.write("HTTP/1.1 200 OK\r\n");
-			request.socket.write("Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n");
-			request.socket.write("Pragma: no-cache\r\n");
-			request.socket.write("Connection: close\r\n");
-			request.socket.write("Content-Type: multipart/x-mixed-replace; boundary=" + context.boundary + "\r\n\r\n");
+			socket.streamId = request.url.split("/")[2];
 
-			context.receivers.push(request.socket);
+			socket.write("HTTP/1.1 200 OK\r\n");
+			socket.write("Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n");
+			socket.write("Pragma: no-cache\r\n");
+			socket.write("Connection: close\r\n");
+			socket.write("Content-Type: multipart/x-mixed-replace; boundary=" + context.boundary + "\r\n\r\n");
 
-			request.socket.on("close", function() {
-				for (let i = 0; i < context.receivers.length;) {
-					if (context.receivers[i].closed) {
-						context.receivers.splice(i, 1);
-						i -= 1;
-					}
-				}
+			context.receivers.push(socket);
+
+			socket.on("error", function(e) {
+				console.log("e:", e);
+				
+				socket.closed = true;
+
+				socket.destroy();
+			});
+
+			socket.on("end", function() {
+				socket.closed = true;
+
+				socket.destroy();
+
+				context.updateReceivers();
 			});
 
 			console.log("Receiver Connected");
@@ -79,12 +88,12 @@ export default class Handler {
 
 			socket.id = "id" + crypto.randomBytes(16).toString("hex");
 
-			socket.write("start\n");
-
-			// socket.on("error", function(...args) {console.log("error", ...args);});
+			socket.on("error", function(...args) {console.log("error", ...args);});
 			// socket.on("timeout", function(...args) {console.log("timeout", ...args);});
 			// socket.on("end", function(...args) {console.log("end", ...args);});
 			// socket.on("close", function(...args) {console.log("close", ...args);});
+
+			socket.write("start\n");
 
 			socket.config = {
 				framesize: 11,
@@ -124,7 +133,7 @@ export default class Handler {
 
 			let encoder = new Encoder(socket.config);
 
-			setInterval(function() {
+			var encoderInterval = setInterval(function() {
 				encoder.save();
 
 				encoder = new Encoder(socket.config);
@@ -208,6 +217,8 @@ export default class Handler {
 
 			encoder.save();
 
+			clearInterval(encoderInterval);
+
 			console.log("Uploader Disconnected");
 
 			context.uploaders.splice(context.uploaders.indexOf(socket), 1);
@@ -262,13 +273,17 @@ export default class Handler {
 		return socket.fps.length;
 	}
 
-	static async sendframe(id, frame) {
+	static updateReceivers() {
 		for (let i = 0; i < this.receivers.length; i++) {
 			if (this.receivers[i].closed) {
 				this.receivers.splice(i, 1);
 				i -= 1;
 			}
 		}
+	}
+
+	static async sendframe(id, frame) {
+		this.updateReceivers();
 
 		for (let i = 0; i < this.receivers.length; i++) {
 			let receiver = this.receivers[i];

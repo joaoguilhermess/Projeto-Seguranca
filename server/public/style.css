@@ -50,8 +50,8 @@ streams {
 	height: 100%;
 	flex-grow: 1;
 	flex-wrap: wrap;
-/*	justify-content: center;*/
-/*	align-items: center;*/
+	justify-content: center;
+	align-items: center;
 }
 
 streams container {
@@ -61,13 +61,12 @@ streams container {
 	border-style: solid;
 	border-width: 1px;
 	border-color: rgba(40, 40, 40, 1.0);
-/*	justify-content: center;*/
-/*	align-items: center;*/
 }
 
 streams container img {
 	display: none;
 	object-fit: contain;
+	margin-inline: auto;
 }
 
 streams container bar {

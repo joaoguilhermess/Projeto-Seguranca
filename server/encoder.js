@@ -32,7 +32,9 @@ export default class Encoder {
 	}
 
 	static generateName(extension) {
-		return (new Date()).toLocaleString().replaceAll("/", "-").replaceAll(":", "-").replace(", ", "-").replaceAll(" ", "") + extension;
+		var d = new Date();
+
+		return [d.getDate(), d.getMonth() + 1, d.getFullYear(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()].join("-") + extension;
 	}
 
 	constructor(config) {
@@ -52,8 +54,8 @@ export default class Encoder {
 			"image2pipe",
 			"-s",
 			resolution,
-			"-framerate",
-			framerate.toString(),
+			// "-framerate",
+			// framerate.toString(),
 			"-i",
 			"-",
 			"-c:v",
@@ -61,14 +63,14 @@ export default class Encoder {
 			"-vf",
 			"format=yuv420p",
 			"-r",
-			"10",
+			"25",
 			// "-shortest",
 			"-movflags",
 			"+faststart",
 			"-preset",
 			"ultrafast",
 			"-crf",
-			"18",
+			"30",
 			Util.joinPath(Encoder.folder, file)
 		]);
 
@@ -76,7 +78,7 @@ export default class Encoder {
 
 		// encoder.stderr.on("data", function(data) {
 			// console.log(data.toString());
-		// });	
+		// });
 
 		encoder.on("close", function(status) {
 			if (status == 0) {
