@@ -27,7 +27,7 @@
 	border-radius: 100vh;
 }
 ::-webkit-scrollbar-thumb:hover {
-	background: #00000030;
+	background: rgba(100, 100, 100, 1.0);
 }
 
 html {
@@ -41,11 +41,20 @@ body {
 	display: none;
 	height: 100%;
 	width: 100%;
-	justify-content: center;
-	align-items: center;
+	flex-direction: column;
+	overflow-y: auto;
 }
 
-streams {
+main {
+	display: flex;
+	display: none;
+	min-height: 100%;
+	max-height: 100%;
+	min-width: 100%;
+	max-width: 100%;
+}
+
+main streams {
 	display: flex;
 	height: 100%;
 	flex-grow: 1;
@@ -54,7 +63,7 @@ streams {
 	align-items: center;
 }
 
-streams container {
+main streams container {
 	display: flex;
 	height: 100%;
 	width: 100%;
@@ -63,13 +72,13 @@ streams container {
 	border-color: rgba(40, 40, 40, 1.0);
 }
 
-streams container img {
+main streams container img {
 	display: none;
 	object-fit: contain;
 	margin-inline: auto;
 }
 
-streams container bar {
+main streams container bar {
 	position: fixed;
 	display: flex;
 	height: fit-content;
@@ -78,7 +87,7 @@ streams container bar {
 	padding: 12px;
 }
 
-streams container bar item {
+main streams container bar item {
 	display: flex;
 	height: fit-content;
 	width: fit-content;
@@ -86,7 +95,7 @@ streams container bar item {
 	gap: 12px;
 }
 
-streams container bar item title {
+main streams container bar item title {
 	display: flex;
 	font-family: "Poppins";
 	font-size: 12px;
@@ -94,7 +103,7 @@ streams container bar item title {
 	color: rgba(150, 150, 150, 1.0);
 }
 
-streams container bar item value {
+main streams container bar item value {
 	display: flex;
 	font-family: "Poppins";
 	font-size: 12px;
@@ -171,4 +180,34 @@ right item value {
 	font-size: 12px;
 	font-weight: 400;
 	color: rgba(200, 200, 200, 1.0);
+}
+
+videos {
+	display: flex;
+	min-height: 100%;
+	max-height: 100%;
+	min-width: 100%;
+	max-width: 100%;
+	padding: 12px;
+	gap: 12px;
+	flex-direction: column;
+}
+
+videos player {
+	display: flex;
+	flex-grow: 1;
+	width: 100%;
+}
+
+videos player video {
+	display: flex;
+	height: 100%;
+	object-fit: contain;
+	margin-inline: auto;
+}
+
+videos timeline {
+	display: flex;
+	height: fit-content;
+	width: 100;
 }

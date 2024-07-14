@@ -47,6 +47,14 @@ class Main {
 			}
 		});
 
+		socket.on("disconnected", function() {
+			var list = context.streams.children;
+
+			for (let i = 0; i < list.length; i++) {
+				context.removeStream(list[i].id);
+			}
+		});
+
 		this.socket = socket;
 	}
 

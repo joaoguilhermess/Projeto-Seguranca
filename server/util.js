@@ -15,8 +15,8 @@ export default class Util {
 		return fs.lstatSync(path);
 	}
 
-	static readStream(path) {
-		return fs.createReadStream(path);
+	static readStream(...args) {
+		return fs.createReadStream(...args);
 	}
 
 	static readFile(path) {
@@ -29,6 +29,10 @@ export default class Util {
 
 	static writeJSON(path, content) {
 		return fs.writeFileSync(path, JSON.stringify(content, null, "\t"));
+	}
+
+	static readFolder(path) {
+		return fs.readdirSync(path);
 	}
 
 	static createFolder(path) {

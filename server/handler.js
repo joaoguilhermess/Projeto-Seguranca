@@ -1,6 +1,7 @@
 import {Server as IO} from "socket.io";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
+import Stream from "./stream.js";
 import Util from "./util.js";
 import crypto from "crypto";
 import log from "./log.js";
@@ -12,15 +13,11 @@ if (process.platform == "win32") {
 
 export default class Handler {
 	static async Init() {
-		this.boundary = "thisisaborder";
-		this.receivers = [];
 		this.uploaders = [];
 
 		this.configFolder = "./config/";
 
 		this.registrySocketIO();
-
-		this.registryStream();
 
 		this.registryHandler();
 	}
@@ -42,38 +39,6 @@ export default class Handler {
 		});
 
 		this.io = io;
-	}
-
-	static registryStream() {
-		var context = this;
-
-		Server.registryScript("/stream/*", async function(request, response) {
-			let socket = request.socket;
-
-			socket.streamId = request.url.split("/")[2];
-
-			socket.write("HTTP/1.1 200 OK\r\n");
-			socket.write("Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n");
-			socket.write("Pragma: no-cache\r\n");
-			socket.write("Connection: close\r\n");
-			socket.write("Content-Type: multipart/x-mixed-replace; boundary=" + context.boundary + "\r\n\r\n");
-
-			context.receivers.push(socket);
-
-			context.updateReceivers();
-
-			var f = function() {
-				socket.destroy();
-
-				context.updateReceivers();
-			};
-
-			socket.on("error", f);
-
-			socket.on("end", f);
-
-			log("Receiver Connected");
-		});
 	}
 
 	static registryHandler() {
@@ -221,7 +186,7 @@ export default class Handler {
 
 		socket.encoder.write(frame);
 
-		this.sendframe(socket.id, frame);
+		Stream.sendframe(socket.id, frame);
 	}
 
 	static async getMotion(socket, frame) {
@@ -289,44 +254,6 @@ export default class Handler {
 
 		if (changed) {
 			log("Uploaders:", this.uploaders.length);
-		}
-	}
-
-	static updateReceivers(noFirst) {
-		if (!noFirst) {
-			log("Receivers:", this.receivers.length);
-		}
-
-		var changed = false;
-
-		for (let i = 0; i < this.receivers.length; i++) {
-			if (this.receivers[i].closed) {
-				this.receivers.splice(i, 1);
-
-				i -= 1;
-
-				changed = true;
-			}
-		}
-
-		if (changed) {
-			log("Receivers:", this.receivers.length);
-		}
-	}
-
-	static async sendframe(id, frame) {
-		this.updateReceivers(true);
-
-		for (let i = 0; i < this.receivers.length; i++) {
-			let receiver = this.receivers[i];
-
-			if (receiver.streamId != id) {continue;}
-
-			receiver.write("--" + this.boundary + "\r\n");
-			receiver.write("Content-Type: image/jpeg\r\n");
-			receiver.write("Content-Length: " + frame.length + "\r\n\r\n");
-
-			receiver.write(frame);
 		}
 	}
 

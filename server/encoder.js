@@ -3,8 +3,8 @@ import Util from "./util.js";
 import log from "./log.js";
 
 export default class Encoder {
-	static Init() {
-		this.folder = "./videos/";
+	static Init(folder) {
+		this.folder = folder;
 
 		this.framerates = [
 			"96x96", 50,
