@@ -33,6 +33,8 @@
 
 #define INTERVAL 1000/10
 
+#define ID "85dcbb66a0cc4183b7698864f46f3bcf"
+
 WiFiClient socket;
 sensor_t* sensor;
 String lastConfig = "";
@@ -143,7 +145,9 @@ camera_fb_t* getFrame() {
 String getConfig() {
 	String json = "{";
 
-	json += "\"framesize\": ";
+	json += "\"id\": \"";
+	json += ID;
+	json += "\",\"framesize\": ";
 	json += String(sensor->status.framesize);
 	json += ",\"quality\": ";
 	json += String(sensor->status.quality);

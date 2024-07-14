@@ -1,5 +1,6 @@
 import mdns from "multicast-dns";
 import cast from "castv2";
+import log from "./log.js";
 
 class Cast {
 	static async Init() {
@@ -7,13 +8,13 @@ class Cast {
 
 		// var chromecast = await this.search();
 
-		// console.log(chromecast);
+		// log(chromecast);
 
 		var chromecast = "192.168.1.7";
 
 		await this.connect(chromecast);
 
-		console.log("Casting");
+		log("Casting");
 
 		await this.stop();
 

@@ -2,6 +2,7 @@ import Handler from "./handler.js";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
 import Util from "./util.js";
+import log from "./log.js";
 
 class Main {
 	static Init() {
@@ -20,7 +21,7 @@ class Main {
 		var context = this;
 
 		Server.start(this.port, function() {
-			console.log("Ready at: http://" + Util.getAddress() + ":" + context.port);
+			log("Ready at: http://" + Util.getAddress() + ":" + context.port);
 		});
 	}
 }

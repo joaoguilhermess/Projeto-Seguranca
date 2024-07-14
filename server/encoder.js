@@ -1,5 +1,6 @@
 import childProcess from "child_process";
 import Util from "./util.js";
+import log from "./log.js";
 
 export default class Encoder {
 	static Init() {
@@ -34,16 +35,26 @@ export default class Encoder {
 	static generateName(extension) {
 		var d = new Date();
 
-		return [d.getDate(), d.getMonth() + 1, d.getFullYear(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()].join("-") + extension;
+		return [
+			Util.formatNumber(d.getDate()),
+			Util.formatNumber(d.getMonth() + 1),
+			Util.formatNumber(d.getFullYear(), 4),
+			Util.formatNumber(d.getHours()),
+			Util.formatNumber(d.getMinutes()),
+			Util.formatNumber(d.getSeconds()),
+			Util.formatNumber(d.getMilliseconds(), 4)
+		].join("-") + extension;
 	}
 
-	constructor(config) {
+	constructor(socket) {
+		this.startime = Date.now();
+
 		if (!Util.verifyPath(Encoder.folder)) {
 			Util.createFolder(Encoder.folder);
 		}
 
-		var resolution = Encoder.framerates[config.framesize * 2];
-		var framerate = Encoder.framerates[config.framesize * 2 + 1];
+		var resolution = Encoder.framerates[socket.config.framesize * 2];
+		var framerate = Encoder.framerates[socket.config.framesize * 2 + 1];
 
 		var file = Encoder.generateName(".mp4");
 
@@ -59,11 +70,11 @@ export default class Encoder {
 			"-i",
 			"-",
 			"-c:v",
-			"libx265",
+			"libx264",
 			"-vf",
 			"format=yuv420p",
 			"-r",
-			"25",
+			framerate.toString(),
 			// "-shortest",
 			"-movflags",
 			"+faststart",
@@ -74,24 +85,24 @@ export default class Encoder {
 			Util.joinPath(Encoder.folder, file)
 		]);
 
-		console.log("New Video:", file);
+		log("New Video:", file);
 
 		// encoder.stderr.on("data", function(data) {
-			// console.log(data.toString());
+			// log(data.toString());
 		// });
 
 		encoder.on("close", function(status) {
 			if (status == 0) {
-				console.log("Video:", file, "Saved");
+				log("Video:", file, "Saved");
 			} else {
-				console.log("Video:", file, "Failed");
+				log("Video:", file, "Failed");
 			}
 		});
 
 		this.encoder = encoder;
 		this.file = file;
 
-		this.framesize = config.framesize;
+		this.framesize = socket.config.framesize;
 	}
 
 	write(buffer) {
@@ -102,5 +113,9 @@ export default class Encoder {
 
 	save() {
 		this.encoder.stdin.end();
+	}
+
+	getDuration() {
+		return Date.now() - this.startime;
 	}
 }

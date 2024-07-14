@@ -27,6 +27,10 @@ export default class Util {
 		return fs.writeFileSync(path, content);
 	}
 
+	static writeJSON(path, content) {
+		return fs.writeFileSync(path, JSON.stringify(content, null, "\t"));
+	}
+
 	static createFolder(path) {
 		return fs.mkdirSync(path);
 	}
@@ -39,5 +43,15 @@ export default class Util {
 		}
 		
 		return "localhost";
+	}
+
+	static formatNumber(n, length = 2) {
+		n = n.toString();
+
+		while (n.length < length) {
+			n = "0" + n;
+		}
+
+		return n;
 	}
 }

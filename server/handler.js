@@ -1,7 +1,9 @@
 import {Server as IO} from "socket.io";
 import Encoder from "./encoder.js";
 import Server from "./server.js";
+import Util from "./util.js";
 import crypto from "crypto";
+import log from "./log.js";
 var sharp;
 
 if (process.platform == "win32") {
@@ -13,6 +15,8 @@ export default class Handler {
 		this.boundary = "thisisaborder";
 		this.receivers = [];
 		this.uploaders = [];
+
+		this.configFolder = "./config/";
 
 		this.registrySocketIO();
 
@@ -56,25 +60,19 @@ export default class Handler {
 
 			context.receivers.push(socket);
 
-			socket.on("error", function(e) {
-				console.log("e:", e);
-				
-				socket.closed = true;
+			context.updateReceivers();
 
-				socket.destroy();
-			});
-
-			socket.on("end", function() {
-				socket.closed = true;
-
+			var f = function() {
 				socket.destroy();
 
 				context.updateReceivers();
-			});
+			};
 
-			console.log("Receiver Connected");
+			socket.on("error", f);
 
-			console.log("Receivers:", context.receivers.length);
+			socket.on("end", f);
+
+			log("Receiver Connected");
 		});
 	}
 
@@ -84,60 +82,31 @@ export default class Handler {
 		Server.server.on("upgrade", async function(request, socket, head) {
 			if (request.headers.upgrade != "uploader") {return};
 
-			console.log("Uploader Connected");
+			log("Uploader Connected");
 
-			socket.id = "id" + crypto.randomBytes(16).toString("hex");
+			socket.on("error", function(...args) {log("error", ...args);});
+			socket.on("timeout", function(...args) {log("timeout", ...args);});
+			socket.on("end", function(...args) {log("end", ...args);});
+			socket.on("close", function(...args) {log("close", ...args);});
 
-			socket.on("error", function(...args) {console.log("error", ...args);});
-			// socket.on("timeout", function(...args) {console.log("timeout", ...args);});
-			// socket.on("end", function(...args) {console.log("end", ...args);});
-			// socket.on("close", function(...args) {console.log("close", ...args);});
+			var f = function() {if (socket.unlock) {socket.unlock();}};
+
+			socket.on("readable", f);
+			socket.on("error", f);
+			socket.on("end", f);
 
 			socket.write("start\n");
 
-			socket.config = {
-				framesize: 11,
-				quality: 10,
-				brightness: 0,
-				contrast: 0,
-				saturation: 0,
-				special_effect: 0,
-				awb: 1,
-				awb_gain: 1,
-				wb_mode: 0,
-				aec: 1,
-				aec2: 0,
-				ae_level: 0,
-				aec_value: 300,
-				agc: 1,
-				agc_gain: 0,
-				gainceiling: 0,
-				bpc: 0,
-				wpc: 1,
-				raw_gma: 1,
-				lenc: 1,
-				hmirror: 0,
-				vflip: 0,
-				dcw: 1,
-				colorbar: 0
-			};
-
 			context.uploaders.push(socket);
+
+			context.updateUploaders();
+
+			socket.id = crypto.randomUUID().replaceAll("-", "");
 			
 			context.io.emit("uploader", socket.id, "connected");
-			context.io.emit("config", socket.id, socket.config);
 
-			socket.on("readable", function() {if (socket.unlock) {socket.unlock();}});
-			socket.on("error", function() {if (socket.unlock) {socket.unlock();}});
-			socket.on("end", function() {if (socket.unlock) {socket.unlock();}});
-
-			let encoder = new Encoder(socket.config);
-
-			var encoderInterval = setInterval(function() {
-				encoder.save();
-
-				encoder = new Encoder(socket.config);
-			}, 10 * 60 * 1000);
+			socket.config = {};
+			socket.encoder;
 
 			while (!socket.closed) {
 				if (socket.closeTimeout) {
@@ -145,6 +114,8 @@ export default class Handler {
 				}
 
 				socket.closeTimeout = setTimeout(function() {
+					log("closeTimeout");
+
 					if (socket.unlock) {
 						socket.unlock();
 					}
@@ -154,7 +125,7 @@ export default class Handler {
 					socket.destroy();
 
 					delete socket.closeTimeout;
-				}, 1000);
+				}, 1000 * 10);
 
 				let t = (await context.read(socket, 1)).toString();
 
@@ -163,68 +134,94 @@ export default class Handler {
 				}
 
 				if (t == "c") {
-					let length = parseInt((await context.read(socket, 10)).toString());
-
-					let config = (await context.read(socket, length)).toString();
-
-					if (config.length != length) {break;}
-
-					config = JSON.parse(config);
-
-					let keys = Object.keys(config);
-
-					for (let i = 0; i < keys.length; i++) {
-						socket.config[keys[i]] = config[keys[i]];
-					};
-
-					if (socket.config.framesize != encoder.framesize) {
-						encoder.save();
-
-						encoder = new Encoder(socket.config);
-					}
-
-					context.io.emit("config", socket.id, socket.config);
+					if (await context.handleConfig(socket)) {return;}
 				} else if (t == "f") {
-					let length = parseInt((await context.read(socket, 10)).toString());
-
-					let frame = await context.read(socket, length);
-
-					if (frame.length != length) {break;}
-
-					let fps = context.getFps(socket);
-
-					context.io.emit("fps", socket.id, fps);
-
-					if (process.platform == "win32") {
-						let motion = await context.getMotion(socket, frame);
-
-						if (motion) {
-							context.io.emit("motion", socket.id, motion);
-							
-							// if (motion > 40) {
-							// 	if (!socket.commandTimeout) {
-							// 		context.startBlinking(socket);
-							// 	}
-							// }
-						}
-					}
-
-					encoder.write(frame);
-
-					context.sendframe(socket.id, frame);
+					if (await context.handleFrame(socket)) {return;}
 				}
 			}
 
-			encoder.save();
+			if (socket.closeTimeout) {
+				clearTimeout(socket.closeTimeout);
+			}
 
-			clearInterval(encoderInterval);
+			socket.encoder.save();
 
-			console.log("Uploader Disconnected");
+			log("Uploader Disconnected");
 
-			context.uploaders.splice(context.uploaders.indexOf(socket), 1);
+			context.updateUploaders();
 
 			context.io.emit("uploader", socket.id, "disconnected");
 		});
+	}
+
+	static async handleConfig(socket) {
+		let length = parseInt((await this.read(socket, 10)).toString());
+
+		let config = (await this.read(socket, length)).toString();
+
+		if (config.length != length) {return true;}
+
+		config = JSON.parse(config);
+
+		let keys = Object.keys(config);
+
+		for (let i = 0; i < keys.length; i++) {
+			socket.config[keys[i]] = config[keys[i]];
+		};
+
+		if (!Util.verifyPath(this.configFolder)) {
+			Util.createFolder(this.configFolder);
+		}
+
+		Util.writeJSON(Util.joinPath(this.configFolder, socket.config.id), socket.config);
+
+		if (!socket.encoder) {
+			socket.encoder = new Encoder(socket);
+		}
+
+		if (socket.config.framesize != socket.encoder.framesize) {
+			socket.encoder.save();
+
+			socket.encoder = new Encoder(socket);
+		}
+
+		this.io.emit("config", socket.id, socket.config);
+	}
+
+	static async handleFrame(socket) {
+		let length = parseInt((await this.read(socket, 10)).toString());
+
+		let frame = await this.read(socket, length);
+
+		if (frame.length != length) {return true;}
+
+		let fps = this.getFps(socket);
+
+		this.io.emit("fps", socket.id, fps);
+
+		if (process.platform == "win32") {
+			let motion = await this.getMotion(socket, frame);
+
+			if (motion) {
+				this.io.emit("motion", socket.id, motion);
+				
+				// if (motion > 40) {
+				// 	if (!socket.commandTimeout) {
+				// 		this.startBlinking(socket);
+				// 	}
+				// }
+			}
+		}
+
+		if (socket.encoder.getDuration() > 2 * 60 * 1000) {
+			socket.encoder.save();
+
+			socket.encoder = new Encoder(socket);
+		}
+
+		socket.encoder.write(frame);
+
+		this.sendframe(socket.id, frame);
 	}
 
 	static async getMotion(socket, frame) {
@@ -273,17 +270,52 @@ export default class Handler {
 		return socket.fps.length;
 	}
 
-	static updateReceivers() {
+	static updateUploaders() {
+		log("Uploaders:", this.uploaders.length);
+
+		var changed = false;
+
+		for (let i = 0; i < this.uploaders.length; i++) {
+			if (this.uploaders[i].closed) {
+				this.io.emit("uploader", this.uploaders[i].id, "disconnected");
+
+				this.uploaders.splice(i, 1);
+
+				i -= 1;
+
+				changed = true;
+			}
+		}
+
+		if (changed) {
+			log("Uploaders:", this.uploaders.length);
+		}
+	}
+
+	static updateReceivers(noFirst) {
+		if (!noFirst) {
+			log("Receivers:", this.receivers.length);
+		}
+
+		var changed = false;
+
 		for (let i = 0; i < this.receivers.length; i++) {
 			if (this.receivers[i].closed) {
 				this.receivers.splice(i, 1);
+
 				i -= 1;
+
+				changed = true;
 			}
+		}
+
+		if (changed) {
+			log("Receivers:", this.receivers.length);
 		}
 	}
 
 	static async sendframe(id, frame) {
-		this.updateReceivers();
+		this.updateReceivers(true);
 
 		for (let i = 0; i < this.receivers.length; i++) {
 			let receiver = this.receivers[i];
@@ -354,7 +386,7 @@ export default class Handler {
 		var command = "flash";
 
 		if (!socket.blinkInterval) {
-			context.sendCommand(command, 1);
+			this.sendCommand(command, 1);
 
 			socket.led = true;
 

@@ -88,7 +88,7 @@ class Main {
 		container.append(stream);
 		container.append(bar);
 
-		this.addItems(bar);
+		this.addItems(bar, id);
 
 		this.streams.append(container);
 
@@ -99,8 +99,6 @@ class Main {
 		var list = this.streams.children;
 		
 		if (list.length == 0) {return;}
-
-		console.log("length:", list.length);
 
 		var k = Math.sqrt(list.length);
 
@@ -120,8 +118,6 @@ class Main {
 		}
 
 		while (c - list.length >= k) {
-			console.log("c:", c);
-
 			if (this.streams.offsetWidth >= this.streams.offsetHeight) {
 				a -= 1;
 			} else {
@@ -131,8 +127,6 @@ class Main {
 			c = a * b;
 		}
 
-		console.log(a + "x" + b, c);
-
 		for (let i = 0; i < list.length; i++) {
 			list[i].style.maxHeight = 100 / a + "%";
 			list[i].style.maxWidth = 100 / b + "%";
@@ -140,21 +134,33 @@ class Main {
 	}
 
 	static removeStream(id) {
-		this.streams.querySelector("#" + id).parentElement.remove();
+		var stream = this.streams.querySelector("#" + id);
+
+		stream.onerror = null;
+
+		stream.src = "";
+
+		stream.parentElement.remove();
+
+		stream.remove();
 
 		this.fitStreams();
 	}
 
-	static addItems(parent) {
+	static addItems(parent, id) {
 		var fps = this.addItem(parent, "FPS", 0);
 
-		this.socket.on("fps", function(id, value) {
+		this.socket.on("fps", function(_id, value) {
+			if (id != _id) {return;}
+
 			fps.value.textContent = value;
 		});
 
 		var motion = this.addItem(parent, "Motion", "0%");
 
-		this.socket.on("motion", function(id, percent) {
+		this.socket.on("motion", function(_id, percent) {
+			if (id != _id) {return;}
+
 			motion.value.textContent = percent.toFixed(2) + "%";
 
 			// if (motion.timeout) {
