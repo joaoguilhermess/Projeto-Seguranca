@@ -1,0 +1,174 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+* {
+	box-sizing: border-box;
+	user-select: none;
+	outline: 0;
+	margin: 0;
+	padding: 0;
+	gap: 0;
+	border: 0;
+	line-height: 1em;
+	font-optical-sizing: auto;
+	text-rendering: optimizeLegibility;
+	scroll-behavior: smooth !important;
+	-webkit-font-smoothing: antialiased;
+	-webkit-font-highlight-color: transparent;
+	overflow: hidden;
+}
+
+::-webkit-scrollbar {
+	min-width: 4px;
+	max-width: 4px;
+	background: rgba(40, 40, 40, 1.0);
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(125, 125, 125, 1.0);
+	border-radius: 100vh;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: #00000030;
+}
+
+html {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	background-color: rgba(0, 0, 0, 1.0);
+}
+
+body {
+	display: none;
+	height: 100%;
+	width: 100%;
+	justify-content: center;
+	align-items: center;
+}
+
+streams {
+	display: flex;
+	height: 100%;
+	flex-grow: 1;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+}
+
+streams container {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	border-style: solid;
+	border-width: 1px;
+	border-color: rgba(40, 40, 40, 1.0);
+}
+
+streams container img {
+	display: none;
+	object-fit: contain;
+	margin-inline: auto;
+}
+
+streams container bar {
+	position: fixed;
+	display: flex;
+	height: fit-content;
+	max-width: 100%;
+	gap: 12px;
+	padding: 12px;
+}
+
+streams container bar item {
+	display: flex;
+	height: fit-content;
+	width: fit-content;
+/*	padding: 24px;*/
+	gap: 12px;
+}
+
+streams container bar item title {
+	display: flex;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(150, 150, 150, 1.0);
+}
+
+streams container bar item value {
+	display: flex;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
+}
+
+right {
+	display: flex;
+	max-height: 100%;
+	min-width: 400px;
+	max-width: 400px;
+	padding: 12px;
+	gap: 12px;
+	flex-direction: column;
+	margin-top: auto;
+	margin-bottom: auto;
+	overflow-y: auto;
+}
+
+right item {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	overflow: visible;
+}
+
+right item title {
+	display: flex;
+	width: 100%;
+	max-width: 50%;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
+	overflow: visible;
+}
+
+right item input {
+	display: flex;
+	height: 12px;
+	appearance: none;
+	flex-grow: 1;
+	background-color: rgba(40, 40, 40, 1.0);
+	border-radius: 100vh;
+	cursor: pointer;
+}
+
+right item input::-webkit-slider-thumb {
+	appearance: none;
+	height: 12px;
+	width: 12px;
+	background-color: rgba(125, 125, 125, 1.0);
+	border-radius: 100vh;
+}
+
+right item input.switch {
+	max-width: 24px;
+}
+
+right item select {
+	display: flex;
+	flex-grow: 1;
+	background-color: rgba(40, 40, 40, 1.0);
+	border-radius: 100vh;
+	color: rgba(200, 200, 200, 1.0);
+	cursor: pointer;
+}
+
+right item value {
+	display: flex;
+	min-width: fit-content;
+	font-family: "Poppins";
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(200, 200, 200, 1.0);
+}
