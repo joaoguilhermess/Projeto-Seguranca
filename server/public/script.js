@@ -2,6 +2,8 @@ class Main {
 	static Init() {
 		this.streams = document.body.querySelector("streams");
 		this.right = document.body.querySelector("right");
+		this.items = document.body.querySelector("items");
+		this.player = document.body.querySelector("player video");
 
 		var context = this;
 
@@ -13,11 +15,13 @@ class Main {
 
 		this.addOnload();
 
-		this.addFullscreen();
+		// this.addFullscreen();
 
 		this.InitSocketIO();
 
 		this.addMenu();
+
+		this.updateTimeline();
 	}
 
 	static addOnload() {
@@ -45,6 +49,10 @@ class Main {
 			} else if (status == "disconnected") {
 				context.removeStream(id);
 			}
+		});
+
+		socket.on("timeline", function(id, value) {
+			context.updateTimeline();
 		});
 
 		socket.on("disconnected", function() {
@@ -97,6 +105,14 @@ class Main {
 		container.append(bar);
 
 		this.addItems(bar, id);
+
+		stream.addEventListener("click", function() {
+			if (context.right.style.display == "flex") {
+				return context.right.style.display = "none";
+			}
+
+			context.right.style.display = "flex";
+		});
 
 		this.streams.append(container);
 
@@ -171,15 +187,15 @@ class Main {
 
 			motion.value.textContent = percent.toFixed(2) + "%";
 
-			// if (motion.timeout) {
-			// 	clearTimeout(motion.timeout);
+			if (motion.timeout) {
+				clearTimeout(motion.timeout);
 
-			// 	motion.timeout = null;
-			// }
+				motion.timeout = null;
+			}
 
-			// motion.timeout = setTimeout(function() {
-			// 	motion.value.textContent = "0%";
-			// }, 1000/4);
+			motion.timeout = setTimeout(function() {
+				motion.value.textContent = "0%";
+			}, 1000/4);
 		});
 	}
 
@@ -398,6 +414,73 @@ class Main {
 		console.log(item.alias, value);
 
 		this.socket.emit("command", "", item.alias, value);
+	}
+
+	static formatNumber(n, l = 2) {
+		n = n.toString();
+
+		while (n.length < l) {
+			n = "0" + n;
+		}
+
+		return n;
+	}
+
+	static formatSize(s) {
+		var kb = 1024;
+		var mb = kb * 1024;
+
+		if (s > mb) {
+			return (s / mb).toFixed(2) + "mb";
+		}
+
+		if (s > kb) {
+			return (s / kb).toFixed(2) + "kb";
+		}
+
+		return s + "b";
+	}
+
+	static async updateTimeline() {
+		var f = await fetch("/videos");
+
+		var videos = await f.json();
+
+		videos.sort(function(a, b) {
+			return (b.start) - (a.start);
+		});
+
+		this.items.innerHTML = "";
+
+		var context = this;
+
+		for (let i = 0; i < videos.length; i++) {
+			if (videos[i].duration == 999) {continue;}
+
+			let item = document.createElement("item");
+			let time = document.createElement("value");
+			let duration = document.createElement("value");
+			let size = document.createElement("value");
+			let date = document.createElement("value");
+
+			let d = new Date(videos[i].start);
+
+			time.textContent = [this.formatNumber(d.getHours()), this.formatNumber(d.getMinutes()), this.formatNumber(d.getSeconds())].join(":");
+			duration.textContent = videos[i].duration/1000 + "s";
+			size.textContent = this.formatSize(videos[i].size);
+			date.textContent = [this.formatNumber(d.getDate()), this.formatNumber(d.getMonth() + 1), this.formatNumber(d.getFullYear(), 4)].join("-");
+
+			item.append(time);
+			item.append(duration);
+			item.append(size);
+			item.append(date);
+
+			item.addEventListener("click", function() {
+				context.player.src = "/videos/" + videos[i].url;
+			});
+
+			this.items.append(item);
+		}
 	}
 }
 

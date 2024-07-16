@@ -109,7 +109,11 @@ export default class Handler {
 				clearTimeout(socket.closeTimeout);
 			}
 
-			socket.encoder.save();
+			socket.encoder.save(function() {
+				context.io.emit("timeline", socket.id, "update");
+			});
+
+			context.io.emit("timeline", socket.id, "update");
 
 			log("Uploader Disconnected");
 
@@ -144,8 +148,12 @@ export default class Handler {
 			socket.encoder = new Encoder(socket);
 		}
 
+		var context = this;
+
 		if (socket.config.framesize != socket.encoder.framesize) {
-			socket.encoder.save();
+			socket.encoder.save(function() {
+				context.io.emit("timeline", socket.id, "update");
+			});
 
 			socket.encoder = new Encoder(socket);
 		}
@@ -178,15 +186,19 @@ export default class Handler {
 			}
 		}
 
-		if (socket.encoder.getDuration() > 2 * 60 * 1000) {
-			socket.encoder.save();
+		var context = this;
+
+		if (socket.encoder.getDuration() > 1 * 60 * 1000) {
+			socket.encoder.save(function() {
+				context.io.emit("timeline", socket.id, "update");
+			});
 
 			socket.encoder = new Encoder(socket);
 		}
 
 		socket.encoder.write(frame);
 
-		Stream.sendframe(socket.id, frame);
+		Stream.sendFrame(socket.id, frame);
 	}
 
 	static async getMotion(socket, frame) {

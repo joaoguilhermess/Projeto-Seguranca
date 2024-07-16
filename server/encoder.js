@@ -35,15 +35,17 @@ export default class Encoder {
 	static generateName(extension) {
 		var d = new Date();
 
-		return [
-			Util.formatNumber(d.getDate()),
-			Util.formatNumber(d.getMonth() + 1),
-			Util.formatNumber(d.getFullYear(), 4),
-			Util.formatNumber(d.getHours()),
-			Util.formatNumber(d.getMinutes()),
-			Util.formatNumber(d.getSeconds()),
-			Util.formatNumber(d.getMilliseconds(), 4)
-		].join("-") + extension;
+		// return [
+		// 	Util.formatNumber(d.getDate()),
+		// 	Util.formatNumber(d.getMonth() + 1),
+		// 	Util.formatNumber(d.getFullYear(), 4),
+		// 	Util.formatNumber(d.getHours()),
+		// 	Util.formatNumber(d.getMinutes()),
+		// 	Util.formatNumber(d.getSeconds()),
+		// 	Util.formatNumber(d.getMilliseconds(), 4)
+		// ].join("-") + extension;
+
+		return Date.now() + extension;
 	}
 
 	constructor(socket) {
@@ -67,6 +69,8 @@ export default class Encoder {
 			resolution,
 			// "-framerate",
 			// framerate.toString(),
+			"-use_wallclock_as_timestamps",
+			"1",
 			"-i",
 			"-",
 			"-c:v",
@@ -74,8 +78,8 @@ export default class Encoder {
 			"-vf",
 			"format=yuv420p",
 			"-r",
-			framerate.toString(),
-			// "-shortest",
+			// framerate.toString(),
+			"20",
 			"-movflags",
 			"+faststart",
 			"-preset",
@@ -111,7 +115,9 @@ export default class Encoder {
 		} catch {}
 	}
 
-	save() {
+	save(callback) {
+		this.encoder.on("close", callback);
+
 		this.encoder.stdin.end();
 	}
 

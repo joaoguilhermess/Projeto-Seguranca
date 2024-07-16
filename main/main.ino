@@ -25,8 +25,8 @@
 #define SSID "Rede2"
 #define PASSWORD "Nada2806"
 
-// #define HOST "192.168.1.10"
-#define HOST "192.168.1.3"
+#define HOST "192.168.1.10"
+// #define HOST "192.168.1.3"
 #define PORT 3000
 
 #define CHUNK 1024
