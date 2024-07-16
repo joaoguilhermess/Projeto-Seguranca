@@ -67,6 +67,14 @@ class Main {
 	}
 
 	static addStream(id) {
+		var option = document.createElement("option");
+
+		option.textContent = id;
+
+		option.value = id;
+
+		this.right.querySelector("#uploader select").append(option);
+
 		var container = document.createElement("container");
 		var stream = document.createElement("img");
 		var bar = document.createElement("bar");
@@ -110,6 +118,18 @@ class Main {
 			if (context.right.style.display == "flex") {
 				return context.right.style.display = "none";
 			}
+
+			var s = context.right.querySelector("#uploader select");
+
+			for (let i = 0; i < s.children.length; i++) {
+				if (s.children[i].textContent == id) {
+					context.right.querySelector("#uploader value").textContent = i + 1;
+
+					break;
+				}
+			}
+			
+			s.value = id;
 
 			context.right.style.display = "flex";
 		});
@@ -158,6 +178,8 @@ class Main {
 	}
 
 	static removeStream(id) {
+		this.right.querySelector("#uploader select #" + id).remove();
+
 		var stream = this.streams.querySelector("#" + id);
 
 		stream.onerror = null;
@@ -303,6 +325,8 @@ class Main {
 			title.textContent = list[i].name;
 
 			item.append(title);
+
+			item.id = list[i].alias;
 
 			if (list[i].type == "switch") {
 				let input = document.createElement("input");
@@ -476,6 +500,14 @@ class Main {
 			item.append(date);
 
 			item.addEventListener("click", function() {
+				var l = context.items.querySelector(".selected");
+
+				if (l) {
+					l.classList.toggle("selected", false);
+				}
+
+				item.classList.toggle("selected", true);
+
 				context.player.src = "/videos/" + videos[i].url;
 			});
 
