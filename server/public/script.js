@@ -509,6 +509,10 @@ class Main {
 				item.classList.toggle("selected", true);
 
 				context.player.src = "/videos/" + videos[i].url;
+
+				context.player.onended = function() {
+					console.log(context.items.children[i - 1]);
+				};
 			});
 
 			this.items.append(item);

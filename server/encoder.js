@@ -79,11 +79,11 @@ export default class Encoder {
 			"format=yuv420p",
 			"-r",
 			// framerate.toString(),
-			"20",
+			"15",
 			"-movflags",
 			"+faststart",
 			"-preset",
-			"ultrafast",
+			"veryfast",
 			"-crf",
 			"30",
 			Util.joinPath(Encoder.folder, file)
