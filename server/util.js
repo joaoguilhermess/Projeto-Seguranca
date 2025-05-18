@@ -41,12 +41,29 @@ export default class Util {
 
 	static getAddress() {
 		if (process.platform == "win32") {
-			return os.networkInterfaces()["Ethernet 2"][1].address;
-		} else if (process.platform == "android") {
-			return os.networkInterfaces().wlan0[1].address;
+			var interfaces = os.networkInterfaces();
+			var names = Object.keys(interfaces);
+
+			for (let i = 0; i < names.length; i++) {
+				let _interface = interfaces[names[i]];
+
+				for (let c = 0; c < _interface.length; c++) {
+					let current = _interface[c];
+
+					if (current.family == "IPv4") {
+						if (!current.internal) {
+							let args = current.address.split(".");
+
+							if (args[0][0] == "1") {
+								if (args[2] == "0") {
+									return current.address;
+								}
+							}
+						}
+					}
+				}
+			}
 		}
-		
-		return "localhost";
 	}
 
 	static formatNumber(n, length = 2) {

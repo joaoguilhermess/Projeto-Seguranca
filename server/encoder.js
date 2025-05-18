@@ -26,7 +26,7 @@ export default class Encoder {
 
 	static getPath() {
 		if (process.platform == "win32") {
-			return "C:\\Users\\User\\Desktop\\Projetos\\ffmpeg\\bin\\ffmpeg.exe";
+			return "ffmpeg.exe";
 		} else if (process.platform == "android") {
 			return "ffmpeg";
 		}
